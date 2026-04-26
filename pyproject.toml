@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recvae"
+version = "0.1.0"
+description = "Recurrent VAE for temporal fMRI representation learning (Alzheimer's research)."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.20",
+    "nibabel>=3.2",
+    "matplotlib>=3.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "nbstripout>=0.6"]
+
+[tool.setuptools.packages.find]
+include = ["recvae*"]
+exclude = ["tests*", "legacy*", "notebooks*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
