@@ -52,7 +52,7 @@ Per batch of `B` subjects rolled out over `T` timesteps:
    ```
    loss_z = lambda_z * ||z||_1
    ```
-   `z_vectors` is a `(N_train, z_dim)` Parameter (see Lesson 06).
+   `z_vectors` is a `(N_train, latent_dim)` Parameter (see Lesson 06).
    L1 keeps most subject offsets near zero so the shared decoder
    carries the work. See `recvae/model.py:289`.
 

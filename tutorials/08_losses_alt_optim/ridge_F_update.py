@@ -17,8 +17,24 @@ def manual_F_ridge(
 ) -> torch.Tensor:
     """Reference implementation of the same math as RecVAEModel.updating_F.
 
-    Mirrors recvae/model.py:236-254. Kept here as a separate function so a
-    reader can diff the two and confirm they agree line for line.
+    Mirrors recvae/model.py. Kept here as a separate function so a reader
+    can diff the two and confirm they agree line for line.
+
+    Derivation
+    ----------
+    The SGD ``loss2`` in :meth:`RecVAEModel.training_step` is averaged over
+    batch and time:
+
+        loss2 = (1 / (2 N T sig_h^2)) * sum_{n,t} ||h_t - g(h_{t-1})||^2,
+
+    and the F-only regularizer is ``rho * ||F||_F^2``. Differentiating the
+    sum with respect to F at zero gives the normal equation
+
+        (X^T X + 2 N T sig_h^2 rho I) F^T = X^T Y.
+
+    The ``2 N T`` factor that comes from the per-volume averaging cannot
+    be dropped — without it the closed form solves a different objective
+    than the SGD loss.
     """
     N, T, D = h_history.shape
     Y = h_history.reshape(-1, D)
@@ -28,8 +44,9 @@ def manual_F_ridge(
     x_shifted[:, 1:] = h_history[:, :-1]
     X = x_shifted.reshape(-1, D)
 
-    # The factor 2*sig_h^2 comes from how loss2 is scaled in training_step.
-    rho_I = 2 * (sig_h ** 2) * rho * torch.eye(D, dtype=h_history.dtype)
+    # The factor 2 * N * T * sig_h^2 comes from how loss2 is averaged in
+    # training_step (per-volume mean).
+    rho_I = 2 * N * T * (sig_h ** 2) * rho * torch.eye(D, dtype=h_history.dtype)
 
     # Normal equations: (X^T X + rho_I) F^T = X^T Y.
     F_T = torch.linalg.solve(X.T @ X + rho_I, X.T @ Y)

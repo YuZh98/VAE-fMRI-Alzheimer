@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from recvae import Config, RecVAEModel
+from recvae import RecVAEModel
 
 
 def test_encoder_decoder_shape_chain(model: RecVAEModel):
@@ -53,7 +53,7 @@ def test_reparametrize_is_device_agnostic(model: RecVAEModel):
 
 def test_z_vectors_is_parameter_with_correct_size(model: RecVAEModel):
     assert isinstance(model.z_vectors, torch.nn.Parameter)
-    assert model.z_vectors.shape == (model.train_size, model.cfg.z_dim)
+    assert model.z_vectors.shape == (model.train_size, model.cfg.latent_dim)
     assert model.z_vectors.requires_grad
 
 
@@ -83,7 +83,12 @@ def test_updating_F_mutates_buffer_with_finite_values(model: RecVAEModel):
 
 
 def test_updating_F_solves_ridge_system(model: RecVAEModel):
-    """Manually solve the ridge system and compare against updating_F."""
+    """Manually solve the ridge system and compare against updating_F.
+
+    The ridge factor must include the N*T sample-count term so the closed
+    form matches the same objective the SGD loss minimizes (per-volume
+    averaged ``loss2`` plus ``rho * ||F||_F^2``).
+    """
     N, T, D = 2, model.tol_time, model.latent_dim
     torch.manual_seed(42)
     h_hist = torch.randn(N, T, D)
@@ -96,11 +101,46 @@ def test_updating_F_solves_ridge_system(model: RecVAEModel):
     x_shifted[:, 0] = h0
     x_shifted[:, 1:] = h_hist[:, :-1]
     X = x_shifted.reshape(-1, D)
-    rho_I = 2 * (model.cfg.sig_h ** 2) * rho * torch.eye(D)
+    rho_I = 2 * N * T * (model.cfg.sig_h**2) * rho * torch.eye(D)
     F_expected = torch.linalg.solve(X.T @ X + rho_I, X.T @ Y).T
 
     model.updating_F(h_hist, h0, rho=rho)
     assert torch.allclose(model.F_mat, F_expected, atol=1e-5)
+
+
+def test_updating_F_is_critical_point_of_combined_loss(model: RecVAEModel):
+    """At the closed-form F, the gradient of (loss2 + loss_F) wrt F is ~0.
+
+    This is the strongest possible check that the closed form solves the
+    objective claimed by training_step: differentiating the same expression
+    that goes into the SGD loss and evaluating at ``model.F_mat`` must
+    yield a near-zero gradient.
+    """
+    N, T, D = 3, model.tol_time, model.latent_dim
+    torch.manual_seed(7)
+    h_hist = torch.randn(N, T, D)
+    h0 = torch.zeros(1, D)
+    rho = 0.4
+    sig_h = model.cfg.sig_h
+
+    model.updating_F(h_hist, h0, rho=rho)
+
+    # Build (X, Y) from the same h_history the closed form consumed.
+    Y = h_hist.reshape(-1, D)
+    x_shifted = torch.empty_like(h_hist)
+    x_shifted[:, 0] = h0
+    x_shifted[:, 1:] = h_hist[:, :-1]
+    X = x_shifted.reshape(-1, D)
+
+    F_mat = model.F_mat.detach().clone().requires_grad_(True)
+    # gh = X @ F^T; loss2 matches training_step's averaging (/ (2 * N * T * sig_h^2)).
+    gh = X @ F_mat.T
+    loss2 = (Y - gh).pow(2).sum() / (sig_h**2) / (2 * N * T)
+    loss_F = rho * (F_mat**2).sum()
+    loss_combined = loss2 + loss_F
+
+    (grad,) = torch.autograd.grad(loss_combined, F_mat)
+    assert grad.abs().max().item() < 1e-4, grad.abs().max().item()
 
 
 def test_updating_F_rejects_wrong_latent_dim(model: RecVAEModel):

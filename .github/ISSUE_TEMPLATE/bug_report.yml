@@ -1,0 +1,65 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in as
+        much of the form below as you can — the more concrete the repro,
+        the faster we can help.
+  - type: input
+    id: title
+    attributes:
+      label: One-line summary
+      description: A short, descriptive title for the bug.
+      placeholder: "RecVAEModel.forward crashes on T=1 sequences"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the actual behavior. Include the full stack trace if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal commands or code snippet that reproduces the bug.
+      placeholder: |
+        1. `git checkout <commit>`
+        2. `pip install -e ".[dev]"`
+        3. `python tutorials/15_train_end_to_end/train_tiny.py`
+        4. ...
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `python -V`, `pip show torch | head`, and your OS.
+      placeholder: |
+        Python: 3.11.7
+        torch: 2.2.0
+        OS: macOS 14.4 (arm64)
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Logs, screenshots, related issues, or hypotheses.
+    validations:
+      required: false

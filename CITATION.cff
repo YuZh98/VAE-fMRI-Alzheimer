@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software in your research or teaching, please cite it as below."
+title: "RecVAE — Recurrent 3D-Conv VAE for fMRI"
+abstract: >
+  RecVAE is a PyTorch reference implementation of a recurrent 3D-convolutional
+  variational autoencoder for temporal fMRI volumes, developed in the context
+  of Alzheimer's-related ADNI cohorts. The repository pairs the model with an
+  18-lesson tutorial series and a synthetic-data on-ramp so that learners new
+  to deep learning for neuroimaging can read, run, and extend the code without
+  requiring access to ADNI.
+authors:
+  - family-names: Zheng
+    given-names: Yu
+version: 0.1.0
+date-released: 2026-05-11
+license: Apache-2.0
+repository-code: "https://github.com/YuZh98/VAE-fMRI-Alzheimer"
+keywords:
+  - pytorch
+  - vae
+  - variational-autoencoder
+  - fmri
+  - neuroimaging
+  - alzheimers-disease
+  - adni
+  - 3d-cnn
+  - representation-learning
+  - medical-imaging
+  - educational

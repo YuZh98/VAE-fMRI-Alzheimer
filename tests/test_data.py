@@ -10,10 +10,11 @@ from recvae import (
     build_dataloader,
     list_subject_files,
     normalize_per_subject,
+    synthetic_cohort,
 )
 
-
 # ---------- normalize_per_subject ----------
+
 
 def test_normalization_maps_to_unit_interval():
     vol = torch.rand(3, 1, 4, 4, 4, 5) * 100 + 50  # arbitrary positive range
@@ -51,6 +52,7 @@ def test_normalization_per_subject_is_independent():
 
 # ---------- FMRIDataset ----------
 
+
 def test_dataset_yields_index_and_volume():
     vol = torch.zeros(3, 1, 2, 2, 2, 2)
     ds = FMRIDataset(vol)
@@ -67,6 +69,7 @@ def test_dataset_rejects_wrong_rank():
 
 # ---------- build_dataloader ----------
 
+
 def test_dataloader_seed_gives_deterministic_order():
     vol = torch.arange(8, dtype=torch.float32).reshape(8, 1, 1, 1, 1, 1)
     ds = FMRIDataset(vol)
@@ -78,6 +81,7 @@ def test_dataloader_seed_gives_deterministic_order():
 
 
 # ---------- list_subject_files ----------
+
 
 def test_list_subject_files_filters_norm_prefix(tmp_path):
     (tmp_path / "mainimage_1.nii.gz").touch()
@@ -91,3 +95,41 @@ def test_list_subject_files_filters_norm_prefix(tmp_path):
 def test_list_subject_files_raises_on_missing_dir(tmp_path):
     with pytest.raises(FileNotFoundError):
         list_subject_files(str(tmp_path / "does_not_exist"))
+
+
+# ---------- synthetic_cohort ----------
+
+
+def test_synthetic_cohort_shape_dtype_and_labels():
+    """Shape (N, 1, X, Y, Z, T), float32 volumes, int64 labels with correct counts."""
+    vols, labels = synthetic_cohort(
+        n_cn=3,
+        n_ad=2,
+        T=5,
+        spatial=(8, 9, 8),
+        seed=0,
+    )
+    assert vols.shape == (5, 1, 8, 9, 8, 5)
+    assert vols.dtype == torch.float32
+    assert labels.shape == (5,)
+    assert labels.dtype == torch.long
+    # Labels: first n_cn=3 are 0, next n_ad=2 are 1.
+    assert int((labels == 0).sum().item()) == 3
+    assert int((labels == 1).sum().item()) == 2
+    assert torch.equal(labels[:3], torch.zeros(3, dtype=torch.long))
+    assert torch.equal(labels[3:], torch.ones(2, dtype=torch.long))
+
+
+def test_synthetic_cohort_seed_reproducibility():
+    """Same seed -> bit-identical output."""
+    a_v, a_l = synthetic_cohort(n_cn=2, n_ad=2, T=4, spatial=(6, 6, 6), seed=7)
+    b_v, b_l = synthetic_cohort(n_cn=2, n_ad=2, T=4, spatial=(6, 6, 6), seed=7)
+    assert torch.equal(a_v, b_v)
+    assert torch.equal(a_l, b_l)
+
+
+def test_synthetic_cohort_different_seeds_differ():
+    """Different seeds -> different volume data."""
+    a_v, _ = synthetic_cohort(n_cn=2, n_ad=2, T=4, spatial=(6, 6, 6), seed=7)
+    c_v, _ = synthetic_cohort(n_cn=2, n_ad=2, T=4, spatial=(6, 6, 6), seed=99)
+    assert not torch.equal(a_v, c_v)

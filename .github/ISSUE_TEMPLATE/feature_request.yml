@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a new feature, API, or enhancement.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for something the package or tutorials should do?
+        Please describe what you want, why, and what alternatives you
+        considered.
+  - type: input
+    id: title
+    attributes:
+      label: One-line summary
+      description: A short, descriptive title for the feature.
+      placeholder: "Add a learnable sigma_x"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is the feature? What would the API or behavior look like?
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this useful? What problem does it solve, and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other designs or workarounds you thought about and why they fell short.
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Sketches, snippets, links to prior art.
+    validations:
+      required: false

@@ -1,0 +1,47 @@
+name: Research / methodology question
+description: A modeling, statistical, or methodology question about the approach.
+title: "[research] "
+labels: ["research"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for questions about modeling choices, loss design,
+        evaluation methodology, or related literature. For "the code is
+        broken" reports, please use the bug template instead.
+  - type: input
+    id: title
+    attributes:
+      label: One-line summary
+      description: A short title for the question.
+      placeholder: "Is the MSE in loss2 a valid stand-in for the canonical KL term?"
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: The question
+      description: Describe the methodological or scientific question you would like to discuss.
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you've tried
+      description: Experiments, derivations, or reasoning you have already worked through.
+    validations:
+      required: false
+  - type: textarea
+    id: papers
+    attributes:
+      label: Papers / references consulted
+      description: Citations, arXiv links, or section pointers.
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Plots, math, hypotheses, related issues.
+    validations:
+      required: false
