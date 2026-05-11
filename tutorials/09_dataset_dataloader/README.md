@@ -47,7 +47,7 @@ noise vector — see `recvae/model.py:168`:
 h_tilde = h + self.z_vectors[which_ones]
 ```
 
-`z_vectors` is a `(N_train, z_dim)` Parameter; `which_ones` is the
+`z_vectors` is a `(N_train, latent_dim)` Parameter; `which_ones` is the
 batch of indices that just came off the loader. Without the index in
 each sample, the model would have no way to associate the right
 subject-specific noise with the right volume in a shuffled batch.

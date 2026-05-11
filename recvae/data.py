@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -31,8 +31,7 @@ def list_subject_files(directory: str, exclude_prefix: str = "norm_") -> list:
     return sorted(
         f
         for f in os.listdir(directory)
-        if not f.startswith(exclude_prefix)
-        and (f.endswith(".nii") or f.endswith(".nii.gz"))
+        if not f.startswith(exclude_prefix) and (f.endswith(".nii") or f.endswith(".nii.gz"))
     )
 
 
@@ -74,7 +73,7 @@ def load_subject_volumes(
 
 def normalize_per_subject(
     volumes: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Per-subject min-max normalize each volume to ``[-1, 1]``.
 
     NOTE
@@ -131,7 +130,7 @@ def build_dataloader(
     dataset: Dataset,
     batch_size: int,
     shuffle: bool = True,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> DataLoader:
     """Construct a DataLoader with deterministic shuffle if ``seed`` given.
 
@@ -146,3 +145,106 @@ def build_dataloader(
         shuffle=shuffle,
         generator=generator,
     )
+
+
+def synthetic_cohort(
+    n_cn: int = 4,
+    n_ad: int = 4,
+    T: int = 16,
+    spatial: tuple[int, int, int] = (91, 109, 91),
+    cohort_effect: float = 0.3,
+    noise_std: float = 0.1,
+    seed: int = 0,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Generate a synthetic fMRI-like cohort with two subgroups.
+
+    Each subject has a low-rank spatial pattern with an AR(1) temporal
+    profile per spatial component. The AD cohort additionally has a regional
+    damping mask multiplied into the spatial pattern, mimicking atrophy:
+    in a hemispheric ROI the pattern amplitude is reduced by
+    ``cohort_effect``. Independent Gaussian noise of std ``noise_std`` is
+    added per voxel-per-timestep.
+
+    The function is deterministic in ``seed``: same seed produces identical
+    output; different seeds produce statistically independent draws.
+
+    Parameters
+    ----------
+    n_cn : number of control (label=0) subjects.
+    n_ad : number of AD-like (label=1) subjects.
+    T : number of timepoints per subject.
+    spatial : (X, Y, Z) spatial extent. The default matches the canonical
+              encoder's hardcoded shape; callers passing this to a real
+              :class:`recvae.RecVAEModel` must keep the default.
+    cohort_effect : fractional damping applied in the AD region. 0 disables
+                    the AD/CN distinction; 1 zeroes the AD region entirely.
+    noise_std : per-voxel additive Gaussian noise std.
+    seed : RNG seed for reproducibility.
+
+    Returns
+    -------
+    volumes : ``(N, 1, X, Y, Z, T)`` float32 tensor, N = n_cn + n_ad.
+    labels  : ``(N,)`` int64 tensor, 0 for CN and 1 for AD, in the order
+              ``[CN, ..., CN, AD, ..., AD]``.
+    """
+    if n_cn < 0 or n_ad < 0:
+        raise ValueError(f"cohort sizes must be non-negative, got {n_cn}, {n_ad}")
+    if (n_cn + n_ad) == 0:
+        raise ValueError("at least one subject is required")
+    if T <= 0:
+        raise ValueError(f"T must be > 0, got {T}")
+
+    X, Y, Z = spatial
+
+    # Use a local generator so we don't disturb the global torch RNG.
+    gen = torch.Generator().manual_seed(seed)
+
+    # Low-rank spatial basis: K random 3D fields. Each subject mixes them
+    # with their own coefficient vector. K small keeps the cohort dimension
+    # statistically meaningful at modest sizes.
+    K = 4
+    basis = torch.randn(K, X, Y, Z, generator=gen, dtype=torch.float32)
+
+    # AR(1) coefficient for the per-component temporal signal. Fixed across
+    # subjects so the structure of the signal is comparable; subjects differ
+    # in their spatial mixing weights and noise realization.
+    ar_phi = 0.7
+
+    # AD damping mask: damp a hemispheric slab so the cohort difference is
+    # localized in space (a crude but recognizable atrophy pattern).
+    damp_mask = torch.ones(X, Y, Z, dtype=torch.float32)
+    half_x = X // 2
+    damp_mask[:half_x] = 1.0 - cohort_effect
+
+    N = n_cn + n_ad
+    volumes = torch.empty(N, 1, X, Y, Z, T, dtype=torch.float32)
+
+    for i in range(N):
+        is_ad = i >= n_cn
+        coeffs = torch.randn(K, generator=gen, dtype=torch.float32)
+        # Per-subject spatial pattern: weighted sum of basis fields.
+        pattern = (coeffs.view(K, 1, 1, 1) * basis).sum(dim=0)  # (X, Y, Z)
+        if is_ad:
+            pattern = pattern * damp_mask
+
+        # Per-component AR(1) temporal series, K independent series, mixed
+        # by the same coefficients so the spatial pattern temporally
+        # modulates as a single 1-D scalar series.
+        t_signal = torch.empty(T, dtype=torch.float32)
+        prev = torch.randn((), generator=gen, dtype=torch.float32)
+        for t in range(T):
+            eps = torch.randn((), generator=gen, dtype=torch.float32)
+            prev = ar_phi * prev + eps
+            t_signal[t] = prev
+
+        # Broadcast: (X, Y, Z, T) = (X, Y, Z, 1) * (T,)
+        vol_4d = pattern.unsqueeze(-1) * t_signal.view(1, 1, 1, T)
+        # Add per-voxel Gaussian noise.
+        noise = torch.randn(X, Y, Z, T, generator=gen, dtype=torch.float32) * noise_std
+        vol_4d = vol_4d + noise
+
+        volumes[i, 0] = vol_4d
+
+    labels = torch.zeros(N, dtype=torch.long)
+    labels[n_cn:] = 1
+    return volumes, labels

@@ -1,10 +1,55 @@
-# fMRI_Project
+# RecVAE — Recurrent 3D-Conv VAE for fMRI (Alzheimer's / ADNI)
 
-Recurrent VAE for temporal fMRI representation learning, applied to
-Alzheimer's-related cohorts (Cognitively Normal vs Alzheimer's Disease) from
-the ADNI study.
+> A PyTorch reference implementation + an 18-lesson tutorial series for
+> people learning to model temporal fMRI data with deep variational
+> autoencoders.
 
-## What it does
+[![CI](https://github.com/YuZh98/VAE-fMRI-Alzheimer/actions/workflows/tutorials.yml/badge.svg)](https://github.com/YuZh98/VAE-fMRI-Alzheimer/actions/workflows/tutorials.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Python ≥3.9](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
+[![PyTorch ≥2.0](https://img.shields.io/badge/pytorch-2.0%2B-ee4c2c)](https://pytorch.org/)
+[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)](#citation)
+<sub>(DOI will be issued on first tagged release.)</sub>
+
+## Why this repo
+
+This is the answer to "where do I start if I want to model fMRI with a VAE
+in PyTorch?" It pairs a clean, tested, device-agnostic recurrent 3D-conv
+VAE implementation with a synthetic-data on-ramp and an 18-lesson tutorial
+series, so you can read, run, and extend the model without needing ADNI
+access. Every example runs on CPU in seconds, and continuous integration
+keeps every script working on every push.
+
+## Who this is for
+
+- **ML practitioner** new to neuroimaging — read [`docs/background/fmri_101.md`](docs/background/fmri_101.md) for the domain context.
+- **Neuroimaging researcher** new to PyTorch — start with [`tutorials/`](tutorials/) and the synthetic notebook.
+- **Course instructor** — every demo runs on CPU in seconds; CI guarantees they all work.
+
+## Try it without data
+
+```bash
+git clone https://github.com/YuZh98/VAE-fMRI-Alzheimer
+cd VAE-fMRI-Alzheimer
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -v                                              # 34 tests, ~5s
+python tutorials/15_train_end_to_end/train_tiny.py     # synthetic, ~3s
+```
+
+For a full end-to-end run on synthetic data, see
+[`notebooks/RecVAE_on_synthetic.ipynb`](notebooks/RecVAE_on_synthetic.ipynb)
+(Open-in-Colab link will be added once the notebook lands on `main`).
+
+## Tutorial series
+
+[`tutorials/`](tutorials/) contains 18 hands-on lessons covering tensor
+shapes, 3D-conv arithmetic, the reparameterization trick, recurrent
+rollouts, alternating optimization, reproducibility, testing DL code, and
+research extensions. Every lesson has a short README and at least one
+runnable script. CI runs every script on every push.
+
+## Architecture
 
 The model is a **3D-convolutional VAE with a latent recurrence**:
 
@@ -47,7 +92,9 @@ re-solved every epoch in closed form by ridge regression on the accumulated
 posterior trajectory. The rest of the network (encoder, inference head,
 decoder, `z_s`) is trained by SGD.
 
-### Loss
+For design rationale, see [`docs/background/this_models_design.md`](docs/background/this_models_design.md).
+
+## Loss
 
 | Term     | Form                                    | How it's optimized       |
 |----------|-----------------------------------------|--------------------------|
@@ -63,91 +110,28 @@ decoder, `z_s`) is trained by SGD.
 ## Repository layout
 
 ```
-fMRI_Project/
+VAE-fMRI-Alzheimer/
 ├── recvae/                  # main Python package (extracted from notebooks)
 │   ├── config.py            # Config dataclass — all hyperparameters
 │   ├── data.py              # NIfTI loading, normalization, Dataset, DataLoader
 │   ├── model.py             # RecVAEModel (encoder/decoder/inference/F update)
 │   ├── train.py             # fit() and evaluate()
 │   └── utils.py             # set_seed, device picker, DeviceDataLoader
-├── tests/                   # pytest suite (23 tests, ~5s, CPU-only)
+├── tutorials/               # 18-lesson hands-on series (synthetic data, CPU-only)
+├── examples/                # short end-to-end driver scripts
+├── docs/                    # background notes (fMRI 101, design rationale, related work)
 ├── notebooks/
-│   ├── RecVAE_on_fMRI.ipynb # canonical driver (uses recvae package)
-│   └── Input_images.ipynb   # data-inspection helpers
+│   ├── RecVAE_on_fMRI.ipynb       # canonical driver (uses recvae package)
+│   ├── RecVAE_on_synthetic.ipynb  # synthetic-data end-to-end demo
+│   └── Input_images.ipynb         # data-inspection helpers
+├── tests/                   # pytest suite (34 tests, ~5s, CPU-only)
 ├── legacy/                  # archived earlier iterations (V1–V4)
 ├── pyproject.toml           # PEP 621 metadata + pytest config
 ├── requirements.txt         # runtime deps
-└── requirements-dev.txt     # + pytest, nbstripout
+├── requirements-dev.txt     # + pytest, nbstripout
+├── LICENSE                  # Apache-2.0
+└── CITATION.cff             # how to cite this repo
 ```
-
-## Install
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt
-```
-
-(Or `pip install -e .[dev]` once you've initialized the package layout.)
-
-## Usage
-
-### Run the tests
-
-```bash
-pytest -v
-```
-
-All 23 tests pass on CPU in a few seconds — they use synthetic tensors and
-do not require nibabel or real fMRI data.
-
-### Train on real data
-
-```python
-import torch
-from recvae import (
-    Config, RecVAEModel, FMRIDataset, build_dataloader,
-    DeviceDataLoader, fit, get_default_device, set_seed,
-    list_subject_files, load_subject_volumes, normalize_per_subject,
-)
-
-set_seed(2022)
-device = get_default_device()
-
-# Point these at your local copies; do NOT commit the paths.
-DIR_CN = "/path/to/CN"
-DIR_AD = "/path/to/AD"
-
-cn_files = list_subject_files(DIR_CN)
-ad_files = list_subject_files(DIR_AD)
-
-cn = load_subject_volumes(DIR_CN, cn_files, tol_time=120)
-ad = load_subject_volumes(DIR_AD, ad_files, tol_time=120)
-volumes = torch.cat([cn, ad], dim=0)
-
-volumes, _, _ = normalize_per_subject(volumes)
-
-cfg = Config()  # defaults match the canonical notebook
-ds = FMRIDataset(volumes)
-dl = build_dataloader(ds, cfg.batch_size, shuffle=True, seed=cfg.seed)
-dl = DeviceDataLoader(dl, device)
-
-model = RecVAEModel(train_size=len(ds), cfg=cfg).to(device)
-h0 = torch.zeros(1, cfg.latent_dim, device=device)
-
-history = fit(model, dl, h0, cfg=cfg, epochs=500)
-```
-
-### Save / load
-
-```python
-torch.save(model.state_dict(), "recvae_state.pt")
-
-model2 = RecVAEModel(train_size=len(ds), cfg=cfg).to(device)
-model2.load_state_dict(torch.load("recvae_state.pt", map_location=device))
-```
-
-`F_mat` (Buffer) and `z_vectors` (Parameter) are both included in
-`state_dict()`, so the snapshot fully captures model state.
 
 ## Hyperparameters
 
@@ -157,8 +141,7 @@ notebook (RecVAE_on_fMRI.ipynb / Version4.ipynb):
 | Field           | Default | Meaning                                         |
 |-----------------|---------|-------------------------------------------------|
 | `enc_out_dim`   | 100     | Encoder output dim before inference head        |
-| `latent_dim`    | 10      | Posterior latent state dim                      |
-| `z_dim`         | 10      | Subject-specific noise dim                      |
+| `latent_dim`    | 10      | Posterior latent state dim, also the subject-noise dim (`z_vectors` shape `(N_train, latent_dim)`) |
 | `tol_time`      | 120     | Truncate every fMRI sequence to this many points|
 | `sig_x/sig_h/sig_z` | 1.0 | Fixed observation/process noise scales          |
 | `rho`           | 0.1     | Ridge penalty for closed-form F update          |
@@ -192,32 +175,25 @@ affect experimental results and need an owner decision:
 - **No KL annealing / β-VAE.** Without an explicit KL term this is moot,
   but worth noting if you add one.
 
-## What changed during the refactor
+## What this is / what this isn't
 
-Earlier this branch:
+This is:
+- A reference implementation of a recurrent 3D-conv VAE for fMRI in PyTorch.
+- A teaching artifact with 18 lessons + a synthetic on-ramp.
+- A starting point you can fork and extend.
 
-- Extracted the model and training loop into the `recvae/` package (no
-  more 80% code duplication across V1/V2/V3/V4).
-- Made the model device-agnostic (CUDA / MPS / CPU) — removed
-  `torch.set_default_tensor_type('torch.cuda.FloatTensor')` and
-  `DataLoader(generator=torch.Generator(device='cuda'))`.
-- Added explicit `device=` and `dtype=` to the reparameterization sample
-  (`torch.randn` was previously CPU-allocated then implicitly moved).
-- Pinned all RNG state in `set_seed` (Python, NumPy, torch CPU, all CUDA
-  devices, cuDNN deterministic).
-- Promoted `z_vectors` to an `nn.Parameter` and `F_mat` to a Buffer —
-  both serialize correctly in `state_dict()` now.
-- Validated NIfTI timepoint count instead of silently producing
-  shape-mismatched stacks.
-- Guarded `normalize_per_subject` against constant-volume division by zero.
-- Added a 23-test pytest suite covering shapes, gradient flow, F update,
-  normalization edge cases, and dataloader determinism.
-- Archived V1–V4 notebooks to `legacy/` and stripped output blobs to keep
-  the repo small.
+This is NOT:
+- A published method paper (no preprint yet).
+- A SOTA model — see [`docs/background/vae_for_neuroimaging.md`](docs/background/vae_for_neuroimaging.md) for stronger alternatives.
+- A clinical tool — the included synthetic data is fictional and ADNI use
+  is for learning, not diagnosis.
 
-See `git log refactor/cleanup-and-modularize` for per-commit detail.
+## Citation
 
-## Citation / data
+If you use this code in your research or teaching, please cite via the
+GitHub "Cite this repository" button (driven by [`CITATION.cff`](CITATION.cff)).
 
-Subject scans come from the [ADNI](http://adni.loni.usc.edu/) study. Do not
-commit subject IDs or filesystem paths into source control.
+## Acknowledgements
+
+Subject scans come from the [ADNI](http://adni.loni.usc.edu/) study; data
+use requires acceptance of the ADNI Data Use Agreement.

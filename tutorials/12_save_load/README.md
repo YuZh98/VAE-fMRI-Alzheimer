@@ -32,7 +32,7 @@ and the `F_mat` Buffer (the linear temporal-prior transition matrix).
 See `recvae/model.py:109-117`:
 
 ```python
-z_init = torch.randn(train_size, cfg.z_dim) * cfg.sig_z
+z_init = torch.randn(train_size, cfg.latent_dim) * cfg.sig_z
 self.z_vectors = nn.Parameter(z_init)
 self.register_buffer("F_mat", torch.rand(cfg.latent_dim, cfg.latent_dim))
 ```

@@ -131,7 +131,7 @@ A plain tensor attribute. Three consequences:
 **After (`recvae/model.py:109-111`):**
 
 ```python
-z_init = torch.randn(train_size, cfg.z_dim) * cfg.sig_z
+z_init = torch.randn(train_size, cfg.latent_dim) * cfg.sig_z
 self.z_vectors = nn.Parameter(z_init)
 ```
 

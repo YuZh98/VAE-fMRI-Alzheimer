@@ -1,4 +1,4 @@
-name: tutorials
+name: tests-and-tutorials
 
 on:
   push:
@@ -8,8 +8,14 @@ on:
 
 jobs:
   test-and-run-demos:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
@@ -17,13 +23,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
 
       - name: Install dependencies (CPU torch)
         run: |

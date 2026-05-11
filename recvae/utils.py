@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 import random
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 import numpy as np
 import torch
@@ -11,19 +13,49 @@ from torch.utils.data import DataLoader
 
 
 def set_seed(seed: int) -> None:
-    """Pin RNG state for Python, NumPy, and PyTorch (CPU + all CUDA devices).
+    """Pin RNG state for Python, NumPy, and PyTorch (CPU + all CUDA + MPS).
 
-    Also enables deterministic cuDNN. This can slow training but makes runs
-    reproducible. The original notebook only called ``torch.manual_seed`` —
-    cuDNN and the CUDA RNG were left unpinned.
+    In addition to seeding the libraries the original notebook touched,
+    this also sets:
+
+    - ``PYTHONHASHSEED`` (via os.environ) so dict/set iteration order from
+      hash-based containers is deterministic when the process starts fresh.
+    - ``CUBLAS_WORKSPACE_CONFIG`` so cuBLAS matmuls are reproducible.
+    - ``torch.use_deterministic_algorithms(True, warn_only=True)`` so any
+      remaining nondeterministic kernel warns instead of silently drifting.
+    - ``torch.mps.manual_seed`` when running on Apple Silicon.
+
+    Both environment variables are set with ``setdefault`` so an explicit
+    user override survives.
+
+    Caveat
+    ------
+    Bit-exact reproducibility is only guaranteed within a single device
+    class. A run seeded on CPU will not reproduce bitwise on CUDA or MPS,
+    and vice versa, because each backend has its own kernel implementations
+    and rounding behavior. Seeding gets you reproducibility within one
+    hardware/library combination, not across them.
     """
+    os.environ.setdefault("PYTHONHASHSEED", str(seed))
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    if torch.backends.mps.is_available():
+        # MPS backend availability + torch.mps.manual_seed presence vary by
+        # torch build; suppress AttributeError on older versions.
+        with contextlib.suppress(Exception):  # pragma: no cover
+            torch.mps.manual_seed(seed)
+
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    # warn_only=True keeps ops that lack a deterministic kernel from raising;
+    # they instead warn. Older torch versions don't support the kwarg.
+    with contextlib.suppress(Exception):
+        torch.use_deterministic_algorithms(True, warn_only=True)
 
 
 def get_default_device() -> torch.device:
