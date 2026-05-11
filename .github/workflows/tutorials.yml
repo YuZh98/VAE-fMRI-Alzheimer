@@ -1,0 +1,51 @@
+name: tutorials
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test-and-run-demos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
+
+      - name: Install dependencies (CPU torch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      - name: Run package tests
+        run: pytest -v
+
+      - name: Run every tutorial demo script
+        env:
+          TUTORIAL_THREADS: "2"
+        run: |
+          set -e
+          shopt -s nullglob
+          for f in tutorials/*/*.py tutorials/*/*/*.py; do
+            base="$(basename "$f")"
+            if [ "$base" = "_tutorial_utils.py" ] || [[ "$base" == _* ]]; then
+              continue
+            fi
+            echo "==> $f"
+            python "$f"
+          done
