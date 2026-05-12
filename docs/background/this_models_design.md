@@ -211,6 +211,52 @@ likely converge faster to a comparable or better loss. The code is
 structured so the optimizer is a one-line swap; see
 `examples/swap_adamw.py` (yet to land).
 
+## Why reconstruction quality is poor on small synthetic cohorts
+
+When I ran the synthetic-cohort pipeline at the default model config
+(8 subjects, T=8, decoder channels `[4, 8, 16, 32]`, Tanh output) and
+swept optimizer + learning rate + epoch budget, the model converged to
+a near-constant output regardless:
+
+| config | Pearson(x, mu) | recon_std / input_std |
+|---|---|---|
+| SGD @ 1e-5, 5 ep | 0.003 | 0.13 |
+| AdamW @ 1e-3, 30 ep | 0.009 | 0.16 |
+| AdamW @ 1e-3, 60 ep | 0.008 | 0.17 |
+| AdamW @ 5e-3, 200 ep (single-volume overfit) | 0.006 | 0.18 |
+| AdamW @ 1e-3, 500 ep (single-volume overfit) | 0.032 | 0.20 |
+
+The latents are not collapsed (10 dims with std 0.8–2.0; subject
+offsets |z| ≈ 0.8). What's collapsed is the decoder: it has roughly
+4800 latent-channel features to expand into ~900k voxels, and the
+final `Tanh` plus per-subject min-max normalization make
+"output ≈ 0" close to the global minimum of `loss1`.
+
+Three things contribute:
+
+1. The decoder is too narrow. Channels `[4, 8, 16, 32]` were inherited
+   from the original notebook; the bottleneck `(32, 5, 6, 5) = 4800`
+   floats is far too small to represent voxelwise structure at full
+   resolution.
+2. The final `Tanh` (`recvae/model.py:153`) saturates at ±1. Combined
+   with per-subject normalization that stretches a handful of outlier
+   voxels to ±1 (the bulk of voxels sit in ±0.3), the decoder lands in
+   a narrow band near 0 because pushing any voxel toward ±1 is heavily
+   penalized when the corresponding input voxel is near 0.
+3. `loss1` summed over ~900k voxels has gradients that are vanishingly
+   small per-voxel relative to the L1 penalty on `z`. The optimizer
+   finds it cheaper to drive recon toward the global mean than to
+   resolve voxel-level structure.
+
+This is a real limitation of the canonical model at the demo scale.
+The legacy notebook hid it: V4 trained for ~10,000–20,000 effective
+epochs at lr=1e-6 over ADNI's 32 subjects with T=120, which gives 50×
+more gradient signal per voxel and slowly nudges the decoder out of
+the zero basin (though it still doesn't reconstruct sharply). To fix
+properly: widen the decoder channels, drop or rescale the final
+`Tanh`, and consider z-score normalization in place of min-max.
+`examples/wide_decoder.py` sketches the fix path.
+
 ## What I'd change if I were starting over
 
 The two that matter most:

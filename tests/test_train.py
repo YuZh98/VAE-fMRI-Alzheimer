@@ -75,6 +75,47 @@ def test_evaluate_runs_in_no_grad_mode(model: RecVAEModel, synthetic_volumes):
     assert model.training is False
 
 
+def test_fit_loss_trends_downward_on_synthetic(small_cfg: Config, synthetic_volumes):
+    """5 epochs of AdamW@1e-3 should show the per-epoch loss going down on at
+    least 2 of the 4 step transitions.
+
+    This is intentionally a weak claim: we are not asserting a specific
+    reconstruction quality (the docs/visuals explain why that is poor on
+    this minimal setup). What we *are* asserting is that training is not
+    silently going backwards — a regression check that catches obvious
+    optimizer/loss wiring breakage.
+    """
+    model = RecVAEModel(train_size=4, cfg=small_cfg)
+    ds = FMRIDataset(synthetic_volumes)
+    dl = build_dataloader(ds, batch_size=2, shuffle=False, seed=0)
+    h0 = torch.zeros(1, model.latent_dim)
+
+    epoch_losses: list[float] = []
+
+    def _cb(_epoch: int, metrics: dict) -> None:
+        epoch_losses.append(float(metrics["loss"]))
+
+    fit(
+        model,
+        dl,
+        h0,
+        cfg=small_cfg,
+        epochs=5,
+        lr=1e-3,
+        opt_func=torch.optim.AdamW,
+        callbacks=[_cb],
+    )
+
+    assert len(epoch_losses) == 5, f"expected 5 epoch losses, got {len(epoch_losses)}"
+    decreases = sum(
+        1 for i in range(len(epoch_losses) - 1) if epoch_losses[i + 1] < epoch_losses[i]
+    )
+    assert decreases >= 2, (
+        f"expected >= 2 of 4 step transitions to decrease, got {decreases}: "
+        f"epoch losses = {epoch_losses}"
+    )
+
+
 def test_fit_logs_one_info_line_per_epoch(small_cfg: Config, synthetic_volumes, caplog):
     """fit() must emit exactly one INFO line containing '[epoch' per epoch."""
     model = RecVAEModel(train_size=4, cfg=small_cfg)

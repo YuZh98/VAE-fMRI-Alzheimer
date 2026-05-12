@@ -60,8 +60,8 @@ SEED = 2022
 N_CN = 4
 N_AD = 4
 T = 8
-EPOCHS = 5
-LR = 1e-5
+EPOCHS = 30
+LR = 1e-3
 
 
 def _build_run():
@@ -93,7 +93,16 @@ def _train_capturing_losses(model, loader, h0, cfg):
         history["loss2"].append(float(metrics["loss2"]))
         history["loss_z"].append(float(metrics["loss_z"]))
 
-    fit(model, loader, h0, cfg=cfg, epochs=cfg.epochs, lr=cfg.learning_rate, callbacks=[_cb])
+    fit(
+        model,
+        loader,
+        h0,
+        cfg=cfg,
+        epochs=cfg.epochs,
+        lr=cfg.learning_rate,
+        opt_func=torch.optim.AdamW,
+        callbacks=[_cb],
+    )
     return history
 
 
@@ -105,7 +114,7 @@ def _plot_loss_curve(history: dict, out_path: pathlib.Path) -> None:
     ax.plot(epochs, history["loss_z"], marker="^", label="loss_z (L1 on z)")
     ax.set_xlabel("epoch")
     ax.set_ylabel("loss component (epoch mean)")
-    ax.set_title("Training on synthetic cohort (8 subjects, 5 epochs)")
+    ax.set_title(f"Training on synthetic cohort (8 subjects, {len(epochs)} epochs, AdamW@1e-3)")
     ax.set_xticks(epochs)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="best")
@@ -130,18 +139,36 @@ def _plot_recon_slice(volumes: torch.Tensor, model: RecVAEModel, h0: torch.Tenso
     inp_slice = x_one[0, 0, :, :, z_mid, 0].cpu().numpy()
     rec_slice = out.mu[0, 0, 0, :, :, z_mid].cpu().numpy()
 
+    # Diagnostic numbers — flatten the full t=0 volume so the Pearson
+    # estimate is computed across all ~900k voxels, not just the slice.
+    inp_full = x_one[0, 0, :, :, :, 0].reshape(-1).cpu().numpy()
+    rec_full = out.mu[0, 0, 0, :, :, :].reshape(-1).cpu().numpy()
+    inp_mean = inp_full.mean()
+    rec_mean = rec_full.mean()
+    inp_centered = inp_full - inp_mean
+    rec_centered = rec_full - rec_mean
+    inp_std = float(inp_centered.std())
+    rec_std = float(rec_centered.std())
+    denom = inp_std * rec_std
+    pearson = float((inp_centered * rec_centered).mean() / denom) if denom > 0 else 0.0
+    std_ratio = rec_std / inp_std if inp_std > 0 else 0.0
+    print(f"Pearson(input, recon) = {pearson:.3f}, recon_std/input_std = {std_ratio:.2f}")
+
+    # Shared color scale on both panels so the visual collapse is obvious
+    # rather than hidden behind two independent normalizations.
+    vmin, vmax = -0.3, 0.3
     fig, axes = plt.subplots(1, 2, figsize=(8, 4), dpi=100)
-    im0 = axes[0].imshow(inp_slice, cmap="gray")
+    im0 = axes[0].imshow(inp_slice, cmap="gray", vmin=vmin, vmax=vmax)
     axes[0].set_title("input (t=0)")
     axes[0].axis("off")
     fig.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
 
-    im1 = axes[1].imshow(rec_slice, cmap="gray")
+    im1 = axes[1].imshow(rec_slice, cmap="gray", vmin=vmin, vmax=vmax)
     axes[1].set_title("reconstruction (t=0)")
     axes[1].axis("off")
     fig.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
 
-    fig.suptitle("Input vs reconstruction (synthetic, untrained-quality, after 5 epochs)")
+    fig.suptitle("Input vs reconstruction (model converges to per-subject mean; see Limitations)")
     fig.tight_layout()
     fig.savefig(out_path, dpi=100, bbox_inches="tight")
     plt.close(fig)

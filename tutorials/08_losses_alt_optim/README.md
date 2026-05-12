@@ -99,6 +99,14 @@ update. Drop the factor and the closed form solves a *different*
 objective than the SGD loss — the resulting `F` would be biased toward
 zero by a factor of `N*T`.
 
+The factor `2 N T sig_h^2` matches a hypothetical loss summed-and-divided
+by the full training set, not the per-batch mean SGD actually optimizes.
+SGD's per-batch `loss2` divides by `2*B*T`, which makes it a stochastic
+estimator of an `1/N`-weighted total loss; the closed-form ridge therefore
+solves the *average-over-the-full-trajectory* problem rather than any
+single-batch problem. This is a deliberate asymmetry — the F update sees
+all subjects at once, so a full-set normalization is the natural choice.
+
 This is the standard ridge-regression closed form. Gradient descent
 would slowly approach the same answer; one linear solve gets you there
 in one step. That is exactly the operation at `recvae/model.py:311-331`.
