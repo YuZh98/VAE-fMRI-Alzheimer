@@ -2,47 +2,32 @@
 
 This directory teaches deep-learning engineering in PyTorch using the
 [`recvae/`](../recvae) package — a recurrent 3D-convolutional VAE for
-temporal fMRI volumes — as a worked example. Every lesson points back to
-real code in the package; the goal is that after Lesson 17 you can read
+temporal fMRI volumes — as a worked example. Every lesson cites real code
+in the package; after Lesson 17 you should be able to read
 [`recvae/model.py`](../recvae/model.py) and [`recvae/train.py`](../recvae/train.py)
 end to end and explain every line.
 
-## Who this is for
+## What's here
 
-- You know Python and the basics of supervised learning.
-- You have used (or skimmed) PyTorch before but want a deeper, project-grounded
-  walk-through.
-- You want to learn the *engineering* side of deep learning — shape arithmetic,
-  device handling, reproducibility, testing, refactoring notebooks into a
-  package — not just architectures.
-
-## What you'll learn
-
-Three acts, building on each other:
-
-- **Act 1 (Lessons 00–07) — Tools and parts.** PyTorch fundamentals, tensor
-  shapes, the 3D-conv encoder/decoder, the reparameterization trick,
-  `nn.Parameter` vs buffers, recurrent rollout.
-- **Act 2 (Lessons 08–12) — Training-loop engineering.** Composite losses,
-  alternating optimization (SGD + closed-form ridge), `Dataset`/`DataLoader`,
-  device-agnostic code, reproducibility, save/load.
-- **Act 3 (Lessons 13–17) — Engineering practice.** Testing DL code with
-  pytest, refactoring notebooks into a package, common pitfalls, and a
-  research-roadmap of extensions to RecVAE.
+Lessons 00–07 cover the parts: PyTorch fundamentals, tensor shapes, the
+3D-conv encoder/decoder, reparameterization, `nn.Parameter` vs buffers,
+and the recurrent rollout. Lessons 08–12 wire those parts into a training
+loop: composite losses, alternating SGD + closed-form ridge,
+`Dataset`/`DataLoader`, device-agnostic code, reproducibility, save/load.
+Lessons 13–17 are engineering hygiene: testing DL code, the
+notebook-to-package refactor, pitfalls, and research extensions. Lesson 18
+is the end-to-end synthetic pipeline.
 
 ## How to use this directory
 
-The intended path is to read each lesson's `README.md`, then run the demo
-script(s) in that lesson's directory, then optionally do the exercise. Each
-demo is one Python file, runs on CPU in seconds, and prints observable
-output. **Read, run, predict, modify, repeat.**
+Read each lesson's `README.md`, run the demo script(s), then optionally do
+the exercise. Each demo is one Python file, runs on CPU in seconds, and
+prints observable output. Demos use small synthetic tensors so you don't
+need real fMRI data; where a demo touches `RecVAEModel` it uses the
+canonical `(1, 91, 109, 91)` spatial shape with a small batch and few
+timesteps.
 
-Demos use small synthetic tensors so you don't need any real fMRI data.
-Where a demo touches the actual `RecVAEModel`, it uses the canonical
-`(1, 91, 109, 91)` spatial shape with a small batch and few timesteps so it
-still runs quickly on a laptop CPU.
-
-## Setup (do this once)
+## Setup (once)
 
 ```bash
 # from the repo root
@@ -52,9 +37,9 @@ pip install -r requirements-dev.txt
 pip install -e .                   # so `import recvae` works
 ```
 
-The editable install is recommended but **not required** — every demo script
+The editable install is recommended but not required: every demo script
 imports `tutorials._tutorial_utils` first, which puts the repo root on
-`sys.path`. You can run any demo directly:
+`sys.path`, so you can run any demo directly:
 
 ```bash
 python tutorials/03_encoder_3dconv/build_encoder.py
@@ -86,17 +71,15 @@ See [`00_setup/`](00_setup/) for a friction-checking script.
 | 17 | [Research extensions](17_extensions/)                                                   | Real KL term, learnable σ, subject splits, β-VAE                        |
 | 18 | [Synthetic pipeline](18_synthetic_pipeline/)                                            | Full end-to-end script mirroring the synthetic notebook                 |
 
-## Conventions used in this directory
+## Conventions
 
-- **One file per concept.** Lesson `NN/foo.py` is a complete, self-contained
-  script. No hidden state, no notebook outputs to chase down.
-- **Every demo starts with `from tutorials._tutorial_utils import section`**
-  (or similar). That import has the side effect of adding the repo root to
+- One file per concept. Lesson `NN/foo.py` is a self-contained script.
+- Every demo starts with `from tutorials._tutorial_utils import section`
+  (or similar). The import has the side effect of adding the repo root to
   `sys.path`, so `import recvae` works even without `pip install -e .`.
-- **Code citations look like `recvae/model.py:42–60`.** Open the file at
-  that line range; the lesson explains what's happening there.
-- **No emojis, no decorative ASCII art beyond shape diagrams.** This is a
-  reading-and-typing experience, not a brochure.
+- Code citations look like `recvae/model.py:42-60`. Open the file at that
+  range; the lesson explains what's happening there.
+- No emojis, no decorative ASCII beyond shape diagrams.
 
 ## Running everything
 
@@ -110,7 +93,5 @@ for f in tutorials/*/*.py; do
 done
 ```
 
-CI runs every script nightly (see [`.github/workflows/tutorials.yml`](../.github/workflows/tutorials.yml));
-tests run on every push/PR via `tests.yml`. If you add a new demo, CI will
-run it. If it doesn't run on CPU in under a minute, CI will time out — keep
-demos small.
+If you add a new demo, CI will run it. Keep demos under a minute on CPU
+or the nightly job will time out.

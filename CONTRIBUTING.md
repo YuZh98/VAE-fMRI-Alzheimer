@@ -1,7 +1,7 @@
 # Contributing
 
-Thanks for your interest in improving RecVAE. This document walks through
-local setup, the test/lint/demo loop, and the conventions used across the
+Thanks for your interest in improving RecVAE. This document covers local
+setup, the test/lint/demo loop, and the conventions used across the
 repository.
 
 ## Development setup
@@ -72,7 +72,7 @@ mypy recvae/
 ```
 
 Mypy is intentionally lenient (`ignore_missing_imports = true`,
-`disable_error_code = ["import-untyped"]`) — it is a smoke check, not a
+`disable_error_code = ["import-untyped"]`): it is a smoke check, not a
 strict-mode gate.
 
 `lint.yml` also runs `tools/check_citations.py` to catch drift between
@@ -116,8 +116,8 @@ commit time. The `pre-commit` config also strips outputs as a safety net.
   applied automatically).
 
 Code review is currently routed via `.github/CODEOWNERS` to @YuZh98.
-Adding a co-maintainer is welcome — please open an issue if you'd like
-to take on review duty for a subtree (e.g. `tutorials/` or `docs/`).
+Adding a co-maintainer is welcome; open an issue if you'd like to take
+on review duty for a subtree (e.g. `tutorials/` or `docs/`).
 
 ## Adding a tutorial
 
