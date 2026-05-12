@@ -10,7 +10,7 @@ and a `verify_torch.py` run that confirms PyTorch can see your hardware.
 
 - `requirements.txt`, `requirements-dev.txt` — pinned dependency lists.
 - `pyproject.toml` — package metadata for the editable install.
-- `recvae/utils.py:29-35` — `get_default_device()` picks CUDA, then MPS, then CPU.
+- `recvae/utils.py:61-67` — `get_default_device()` picks CUDA, then MPS, then CPU.
 - `tutorials/_tutorial_utils.py` — the `sys.path` shim that lets every demo
   `import recvae` without an editable install.
 
@@ -78,9 +78,10 @@ A standalone verifier catches three classes of breakage early: wrong Python
 version, broken torch install, and `recvae` not on the import path. Running
 it first means later lessons can assume the basics work.
 
-CI runs every demo in the `tutorials/` tree on every push, so `verify_torch.py`
-also serves as a smoke test for the whole tutorial set — if it fails in CI,
-nothing else is expected to pass.
+CI runs every demo in the `tutorials/` tree nightly (see
+`.github/workflows/tutorials.yml`), so `verify_torch.py` also serves as a
+smoke test for the whole tutorial set — if it fails in CI, nothing else is
+expected to pass. Tests run on every push/PR via `tests.yml`.
 
 ## Further reading
 

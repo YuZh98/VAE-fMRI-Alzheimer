@@ -46,10 +46,10 @@ def test_save_load_round_trip_matches_state(tmp_path, small_cfg):
     loaded = load_run(run_dir, model2, optimizer=optim2, restore_rng=False)
 
     # Parameter equality after load.
-    for (n1, p1), (n2, p2) in zip(model.named_parameters(), model2.named_parameters()):
+    for (n1, p1), (n2, p2) in zip(model.named_parameters(), model2.named_parameters(), strict=True):
         assert n1 == n2
         assert torch.equal(p1.detach(), p2.detach()), n1
-    for (n1, b1), (n2, b2) in zip(model.named_buffers(), model2.named_buffers()):
+    for (n1, b1), (n2, b2) in zip(model.named_buffers(), model2.named_buffers(), strict=True):
         assert n1 == n2
         assert torch.equal(b1, b2), n1
 

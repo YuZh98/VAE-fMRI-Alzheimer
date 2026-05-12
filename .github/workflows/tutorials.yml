@@ -1,21 +1,18 @@
-name: tests-and-tutorials
+name: tutorials
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  schedule:
+    # Nightly at 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  test-and-run-demos:
-    runs-on: ${{ matrix.os }}
+  run-demos:
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v6
@@ -23,23 +20,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
 
       - name: Cache pip
         uses: actions/cache@v5
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
+          key: ${{ runner.os }}-py3.11-pip-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
 
       - name: Install dependencies (CPU torch)
         run: |
           python -m pip install --upgrade pip
           pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -r requirements-dev.txt
-          pip install -e .
-
-      - name: Run package tests
-        run: pytest -v
+          pip install -e ".[examples]"
 
       - name: Run every tutorial demo script
         env:
@@ -50,6 +44,19 @@ jobs:
           for f in tutorials/*/*.py tutorials/*/*/*.py; do
             base="$(basename "$f")"
             if [ "$base" = "_tutorial_utils.py" ] || [[ "$base" == _* ]]; then
+              continue
+            fi
+            echo "==> $f"
+            python "$f"
+          done
+
+      - name: Run every example script
+        run: |
+          set -e
+          shopt -s nullglob
+          for f in examples/*.py; do
+            base="$(basename "$f")"
+            if [[ "$base" == _* ]]; then
               continue
             fi
             echo "==> $f"

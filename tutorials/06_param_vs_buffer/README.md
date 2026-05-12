@@ -12,7 +12,7 @@
 
 ## Where this lives in the repo
 
-`recvae/model.py:109-117`:
+`recvae/model.py:156-163`:
 
 ```python
 # z_vectors: trained by SGD -> Parameter
@@ -23,7 +23,7 @@ self.z_vectors = nn.Parameter(z_init)
 self.register_buffer("F_mat", torch.rand(cfg.latent_dim, cfg.latent_dim))
 ```
 
-The closed-form update is at `recvae/model.py:208-254`. Note that it
+The closed-form update is at `recvae/model.py:269-331`. Note that it
 runs under `@torch.no_grad()` and writes back with `self.F_mat.copy_(...)`
 — never via assignment.
 
@@ -67,7 +67,7 @@ the other doesn't?
   `g(h) = h @ F^T`. We *could* train it with SGD, but there's a much
   better option: the loss in `F` is quadratic, so the optimum has a
   closed-form ridge-regression solution. We solve for it directly
-  (`recvae/model.py:208-254`) instead of relying on SGD to crawl toward
+  (`recvae/model.py:269-331`) instead of relying on SGD to crawl toward
   it. Closed-form means no autograd needed, so a buffer is more
   honest than a Parameter — a Parameter would also work but would
   mislead readers into thinking it's gradient-trained.
@@ -110,7 +110,7 @@ which tensors are *meant* to be trained. Using buffer vs Parameter as a
 ## Further reading
 
 - PyTorch docs: `torch.nn.Module.register_buffer` and `torch.nn.Parameter`.
-- `recvae/model.py:109-117` — the two-line declaration this lesson is
+- `recvae/model.py:156-163` — the two-line declaration this lesson is
   about.
-- `recvae/model.py:208-254` — `updating_F`, the closed-form update that
+- `recvae/model.py:269-331` — `updating_F`, the closed-form update that
   motivates choosing a buffer over a Parameter.

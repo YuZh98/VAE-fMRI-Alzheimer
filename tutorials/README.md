@@ -81,9 +81,10 @@ See [`00_setup/`](00_setup/) for a friction-checking script.
 | 12 | [Save and load](12_save_load/)                                                          | `state_dict`, `map_location`, partial loads                             |
 | 13 | [Testing DL code](13_testing_dl_code/)                                                  | Shape tests, gradient-flow tests, determinism tests, in pytest          |
 | 14 | [Refactor notebook → package](14_refactor_notebook_to_pkg/)                             | The V1→V4 → `recvae/` arc; before/after diffs                           |
-| 15 | [End-to-end tiny training run](15_train_end_to_end/)                                    | Wire everything together; train 5 epochs on synthetic data              |
+| 15 | [End-to-end tiny training run](15_train_end_to_end/)                                    | Wire everything together; train 3 epochs on synthetic data              |
 | 16 | [Pitfalls](16_pitfalls/)                                                                | The bugs the refactor fixed — and how to avoid them                     |
 | 17 | [Research extensions](17_extensions/)                                                   | Real KL term, learnable σ, subject splits, β-VAE                        |
+| 18 | [Synthetic pipeline](18_synthetic_pipeline/)                                            | Full end-to-end script mirroring the synthetic notebook                 |
 
 ## Conventions used in this directory
 
@@ -109,6 +110,7 @@ for f in tutorials/*/*.py; do
 done
 ```
 
-CI runs this on every push (see [`.github/workflows/tutorials.yml`](../.github/workflows/tutorials.yml)).
-If you add a new demo, CI will run it. If it doesn't run on CPU in under a
-minute, CI will time out — keep demos small.
+CI runs every script nightly (see [`.github/workflows/tutorials.yml`](../.github/workflows/tutorials.yml));
+tests run on every push/PR via `tests.yml`. If you add a new demo, CI will
+run it. If it doesn't run on CPU in under a minute, CI will time out — keep
+demos small.

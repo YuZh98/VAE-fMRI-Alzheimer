@@ -12,7 +12,7 @@
 
 ## Where this lives in the repo
 
-The decoder is built in `recvae/model.py:83-107`. Note the per-dimension
+The decoder is built in `recvae/model.py:122-154`. Note the per-dimension
 tuples on `decoder3` and `decoder4`:
 
 ```
@@ -123,4 +123,4 @@ See `exercise.md`.
 - Dumoulin & Visin, "A guide to convolution arithmetic for deep learning"
   (arXiv:1603.07285). The figures in section 4 are the clearest mental
   model of what transposed conv does to a single feature map.
-- `recvae/model.py:83-107` — the actual decoder this lesson is teaching.
+- `recvae/model.py:122-154` — the actual decoder this lesson is teaching.

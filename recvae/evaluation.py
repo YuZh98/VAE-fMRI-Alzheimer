@@ -113,14 +113,24 @@ def evaluate_held_out(
     inner_steps: int = 100,
     inner_lr: float = 1e-3,
     inner_sig_z: float = 1.0,
+    lambda_z: float = 0.0,
+    seed: int | None = None,
 ) -> dict:
     """Score a frozen model on held-out subjects by fitting their z_s only.
 
     Freezes the encoder, decoder, inference head, F buffer, and training
     ``z_vectors``. A fresh ``z_test`` of shape ``(N_test, latent_dim)`` is
     optimized for ``inner_steps`` plain SGD steps on the reconstruction
-    MSE (the ``loss1`` term only). Returns the final reconstruction MSE,
-    the optimized ``z_test``, and the per-step latent trajectory ``h_test``.
+    MSE (the ``loss1`` term). When >0, adds ``lambda_z * mean(|z_test|)``
+    to the inner-loop loss (per-sample L1, scaled for cohort-size
+    independence). To approximately mirror the training-time penalty on
+    ``z_vectors``, pass ``lambda_z=cfg.lambda_z``. The normalization by
+    ``n_test`` keeps the eval-time penalty scale-independent of held-out
+    cohort size, which is a deliberate departure from training (where the
+    ``lambda_z * ||z||_1`` term is summed over ``(N_train, D)``).
+
+    Returns the final reconstruction MSE, the optimized ``z_test``, and
+    the per-step latent trajectory ``h_test``.
 
     Model parameters are guaranteed to be unchanged after the call: the
     function tracks the original ``requires_grad`` flags and restores them
@@ -135,6 +145,14 @@ def evaluate_held_out(
     inner_steps : number of inner SGD iterations.
     inner_lr : learning rate for the inner SGD on z_test.
     inner_sig_z : initialization std for ``z_test``.
+    lambda_z : weight of the L1 penalty on ``z_test`` during the inner
+        loop. ``0`` (default) disables it and reproduces the original
+        purely-reconstruction inner objective.
+    seed : optional integer seed for the ``z_test`` initialization draw.
+        When provided, a local ``torch.Generator`` is used so back-to-back
+        calls with the same seed produce identical inits — useful for
+        ablating ``lambda_z`` (or other knobs) without confounding by
+        init noise. ``None`` (default) uses the global RNG state.
 
     Returns
     -------
@@ -167,7 +185,19 @@ def evaluate_held_out(
     else:
         h_init = h0
 
-    z_test = nn.Parameter(torch.randn(n_test, latent_dim, device=device, dtype=dtype) * inner_sig_z)
+    gen = torch.Generator(device=device)
+    if seed is not None:
+        gen.manual_seed(seed)
+    z_test = nn.Parameter(
+        torch.randn(
+            n_test,
+            latent_dim,
+            device=device,
+            dtype=dtype,
+            generator=gen if seed is not None else None,
+        )
+        * inner_sig_z
+    )
 
     opt = torch.optim.SGD([z_test], lr=inner_lr)
 
@@ -178,7 +208,10 @@ def evaluate_held_out(
             # x_stack: (N, 1, X, Y, Z, T) -> (N, T, 1, X, Y, Z) to match mu_stack.
             x_stack = volumes_test.permute(0, 5, 1, 2, 3, 4).contiguous()
             recon = (x_stack - mu_stack).pow(2).mean()
-            recon.backward()
+            # When lambda_z > 0, match training-time L1 sparsity on z_s.
+            # Normalize by n_test so penalty scale is independent of held-out cohort size.
+            loss = recon + lambda_z * z_test.abs().sum() / n_test if lambda_z > 0.0 else recon
+            loss.backward()
             opt.step()
 
         # Final forward to record h_test and the post-fit MSE.

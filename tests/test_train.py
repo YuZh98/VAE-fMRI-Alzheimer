@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import torch
 
 from recvae import (
@@ -71,3 +73,24 @@ def test_evaluate_runs_in_no_grad_mode(model: RecVAEModel, synthetic_volumes):
     xs, mus, hs, ghs = evaluate(model, x, h0, which)
     assert mus[0].requires_grad is False
     assert model.training is False
+
+
+def test_fit_logs_one_info_line_per_epoch(small_cfg: Config, synthetic_volumes, caplog):
+    """fit() must emit exactly one INFO line containing '[epoch' per epoch."""
+    model = RecVAEModel(train_size=4, cfg=small_cfg)
+    ds = FMRIDataset(synthetic_volumes)
+    dl = build_dataloader(ds, batch_size=2, shuffle=False, seed=0)
+    h0 = torch.zeros(1, model.latent_dim)
+
+    # Capture from the recvae.train logger at INFO. propagate=True ensures
+    # the logger forwards records to caplog's root handler.
+    with caplog.at_level(logging.INFO, logger="recvae.train"):
+        fit(model, dl, h0, cfg=small_cfg, epochs=2, log_every=1)
+
+    epoch_lines = [
+        r for r in caplog.records if r.levelno == logging.INFO and "[epoch" in r.getMessage()
+    ]
+    assert len(epoch_lines) == 2, (
+        f"expected 2 epoch log lines, got {len(epoch_lines)}: "
+        f"{[r.getMessage() for r in epoch_lines]}"
+    )

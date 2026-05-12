@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
-from typing import Callable
+from collections.abc import Callable, Iterable
 
 import torch
 
@@ -40,10 +39,14 @@ def fit(
     2. Closed-form ridge update on ``F`` using the per-subject posterior
        trajectory accumulated during the SGD pass.
 
-    Progress is emitted through ``logging`` rather than ``print``; configure
-    a handler on the ``recvae.train`` logger (or the root logger) to see
-    output. The per-epoch loss is the mean across batches in that epoch,
-    not the value of the last batch alone.
+    Progress is emitted through ``logging`` rather than ``print``; each
+    epoch logs one INFO-level line of the form
+    ``[epoch k/N] mean_loss=... (recon=..., temporal=..., z_l1=...)`` where
+    each value is the mean across batches in that epoch (not the noisy
+    last-batch value). If no handler is configured for the ``recvae.train``
+    logger (or any ancestor short of root), ``fit()`` attaches a stderr
+    handler to the ``recvae.train`` logger only; never reconfigures root.
+    This keeps importing applications in full control of their own logging.
 
     TODO(research): SGD@1e-6 over 500 epochs likely under-trains a model of
     this size. Consider AdamW with lr ~1e-4 and a cosine scheduler.
@@ -71,6 +74,15 @@ def fit(
     lr = lr if lr is not None else cfg.learning_rate
     rho = rho if rho is not None else cfg.rho
     callbacks = list(callbacks) if callbacks else []
+
+    # Library-friendly logging: only attach a handler if the caller has
+    # not configured one. This keeps tutorials / examples streaming
+    # per-epoch lines without forcing a root-logger config on importers.
+    if not logger.handlers and not logger.parent.handlers:
+        h = logging.StreamHandler()
+        h.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(h)
+        logger.setLevel(logging.INFO)
 
     optimizer = opt_func(model.parameters(), lr=lr)
 
@@ -129,14 +141,13 @@ def fit(
         if epoch % log_every == 0:
             train_loss_history.append(metrics["loss"])
             logger.info(
-                "Epoch [%d]: train loss: %.4f "
-                "(loss1: %.4f, loss2: %.4f, loss_z: %.4f, loss_F: %.4f)",
-                epoch,
+                "[epoch %d/%d] mean_loss=%.4f (recon=%.4f, temporal=%.4f, z_l1=%.4f)",
+                epoch + 1,
+                epochs,
                 metrics["loss"],
                 metrics["loss1"],
                 metrics["loss2"],
                 metrics["loss_z"],
-                metrics["loss_F"],
             )
 
         for cb in callbacks:

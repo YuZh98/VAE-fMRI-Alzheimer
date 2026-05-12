@@ -40,7 +40,7 @@ def main() -> int:
             assert spatial == expected, f"stage {stage}: got {spatial}, expected {expected}"
 
     with section("decoder: ConvTranspose3d k=4 s=2 p=1, with output_padding"):
-        # output_padding values mirror recvae/model.py:90-105 exactly.
+        # output_padding values mirror recvae/model.py:129-152 exactly.
         decoder = nn.Sequential(
             nn.ConvTranspose3d(32, 16, kernel_size=4, stride=2, padding=1, output_padding=1, bias=False),
             nn.ConvTranspose3d(16, 8, kernel_size=4, stride=2, padding=1, output_padding=(0, 1, 0), bias=False),

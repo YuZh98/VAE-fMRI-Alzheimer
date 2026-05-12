@@ -112,7 +112,7 @@ def main() -> int:
         # RecVAEModel.training_step. It is NOT executed; it is reference
         # material for the reader to wire up.
         sketch = '''
-# Inside RecVAEModel.training_step (recvae/model.py:257-302):
+# Inside RecVAEModel.training_step (recvae/model.py:334-386):
 #
 #     x_list, mu_history, h_history, gh_history = self(batch, h_0, which_ones)
 #     ...

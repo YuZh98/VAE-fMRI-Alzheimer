@@ -27,7 +27,7 @@ randomness. A "seeded" notebook run is still non-reproducible whenever
 any of those is touched (data shuffles using NumPy, dropout on CUDA,
 etc).
 
-**After (`recvae/utils.py:13-26`):**
+**After (`recvae/utils.py:15-58`):**
 
 ```python
 def set_seed(seed: int) -> None:
@@ -61,7 +61,7 @@ CPU-only machine (the tensor type does not exist), it breaks MPS
 (Apple Silicon), and it makes every `torch.randn`, `torch.zeros`, etc.
 in the same Python process implicitly device-bound.
 
-**After (`recvae/model.py:135-146`, especially line 145):**
+**After (`recvae/model.py:182-193`, especially line 192):**
 
 ```python
 def reparametrize(self, mu_h, log_var_h):
@@ -89,7 +89,7 @@ train_loader = DataLoader(ds, batch_size=4, shuffle=True, generator=generator)
 machine. It is also unnecessary — the indices a `DataLoader` shuffles
 are Python ints living in the host process; they never touch the GPU.
 
-**After (`recvae/data.py:130-148`, especially 142-148):**
+**After (`recvae/data.py:129-147`, especially 141-147):**
 
 ```python
 def build_dataloader(dataset, batch_size, shuffle=True, seed=None):
@@ -128,7 +128,7 @@ A plain tensor attribute. Three consequences:
 - Not moved by `model.to(device)`. If you move the model to CUDA,
   `z_vectors` stays on CPU and the next forward pass crashes.
 
-**After (`recvae/model.py:109-111`):**
+**After (`recvae/model.py:157-158`):**
 
 ```python
 z_init = torch.randn(train_size, cfg.latent_dim) * cfg.sig_z
@@ -137,7 +137,7 @@ self.z_vectors = nn.Parameter(z_init)
 
 Now `z_vectors` is a real `nn.Parameter`: in `parameters()`, in
 `state_dict()`, follows `to(device)`. The optimizer line in
-`recvae/train.py:58` collapses from "two param groups" to one
+`recvae/train.py:85` collapses from "two param groups" to one
 `opt_func(model.parameters(), lr=lr)`.
 
 ---
@@ -155,7 +155,7 @@ solve every epoch, so any state to be checkpointed *is* the current
 `F_mat`. Saving without it means a reloaded model has a randomly
 initialized `F` and you have to retrain from scratch.
 
-**After (`recvae/model.py:113-116`):**
+**After (`recvae/model.py:160-163`):**
 
 ```python
 self.register_buffer("F_mat", torch.rand(cfg.latent_dim, cfg.latent_dim))
@@ -164,7 +164,7 @@ self.register_buffer("F_mat", torch.rand(cfg.latent_dim, cfg.latent_dim))
 `register_buffer` is the right tool here: `F_mat` is part of model
 state but has no gradient. Now it appears in `state_dict()` and moves
 with `.to(device)`, but is not handed to the optimizer. The in-place
-update at `recvae/model.py:254` (`self.F_mat.copy_(new_F_T.T)`)
+update at `recvae/model.py:331` (`self.F_mat.copy_(new_F_T.T)`)
 preserves the registration.
 
 ---
@@ -187,7 +187,7 @@ then either crashes with an unhelpful message about non-matching sizes
 along dim -1, or — if all volumes happen to be short by the same amount
 — it succeeds and you train on the wrong data without knowing.
 
-**After (`recvae/data.py:65-68`):**
+**After (`recvae/data.py:64-67`):**
 
 ```python
 if arr.shape[-1] < tol_time:
@@ -221,7 +221,7 @@ gradient downstream and the loss becomes `nan` on the first batch
 that touches that subject. Diagnosing this from "loss is nan" is
 miserable.
 
-**After (`recvae/data.py:101-103`):**
+**After (`recvae/data.py:100-102`):**
 
 ```python
 span = max_values - min_values

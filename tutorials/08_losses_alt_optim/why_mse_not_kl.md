@@ -4,15 +4,9 @@
 
 The canonical VAE ELBO has a KL divergence as its regularizer. The
 RecVAE notebook this repo descends from used a squared-error term in
-its place. That choice is preserved in `recvae/model.py:285-286` and
-flagged with a research TODO at `recvae/model.py:273-276`:
-
-```
-# TODO(research): The canonical VAE ELBO has a KL term, not a temporal
-# MSE. This implementation does MAP-style point estimation. To get a
-# proper variational lower bound, replace ``loss2`` with
-# ``KL(q(h_t|.) || N(g(h_{t-1}), sig_h^2 I))``.
-```
+its place. That choice is preserved in `recvae/losses.py:73-74`, and
+the canonical-KL alternative is provided as the opt-in `KLRecVAELoss`
+at `recvae/losses.py:90-163`.
 
 This file explains what the canonical form would look like and why the
 substitution matters.
@@ -57,11 +51,11 @@ That is the term `loss2` *would* be if RecVAE implemented the ELBO.
 
 ## What `loss2` actually computes
 
-`recvae/model.py:285-286`:
+`recvae/losses.py:73-74`:
 
 ```python
 loss2 = sum((h - gh).pow(2).sum() for h, gh in zip(h_history, gh_history))
-loss2 = loss2 / (cfg.sig_h ** 2) / denom
+loss2 = loss2 / (self.sig_h**2) / denom
 ```
 
 That is `||h_t - g(h_{t-1})||^2 / sig_h^2`, summed over time and
@@ -118,8 +112,10 @@ that refactor is out of scope for this lesson.
 
 - `loss2` is *not* the KL term of a textbook VAE; it is an MSE proxy
   that does MAP-style point estimation of the latent trajectory.
-- The TODO at `recvae/model.py:273-276` is real; converting `loss2`
-  to a proper KL is a research-grade extension, not a one-line fix
-  (it changes what the model *is*, not just what it computes).
+- `KLRecVAELoss` at `recvae/losses.py:90-163` implements the proper KL
+  alternative; swap it in via the `loss_fn=` argument to
+  `RecVAEModel.training_step`. The wider change — propagating `mu_h`
+  and `log_var_h` out of `vae_step` so the KL term can use them — is a
+  research-grade extension, not a one-line fix.
 - Until that change is made, treat the inference head's `log_var_h` as
   a parameter the model is free to ignore.

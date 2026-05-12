@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Open-in-Colab badge and synthetic notebook bootstrap so the notebooks
+  run on a fresh Colab kernel without a local checkout.
+- `docs/assets/` with three reproducible visuals (loss curve,
+  reconstruction slice, latent trajectory).
+- `tools/check_citations.py` plus a CI guard that fails when
+  `docs/background/` references drift away from the cited line numbers.
+- `tools/make_figures.py` to regenerate the `docs/assets/` visuals from
+  a single pinned-seed run.
+- Per-epoch progress logging in `fit()`.
+- `lambda_z` parameter on `evaluate_held_out` so held-out evaluation
+  uses the same L1 penalty as training.
+- `--plot` flag on `train_tiny.py` and `pipeline.py` for quick
+  smoke-plotting of loss + a reconstruction slice.
+- `[examples]` optional-dependency group pulling in `scikit-learn` for
+  the `examples/classify_from_latents.py` driver.
+- `.github/CODEOWNERS`.
+
+### Changed
+- CI split into a fast `tests.yml` (pytest matrix on every push/PR)
+  and a nightly `tutorials.yml` (full tutorial demo loop +
+  `examples/`). Python 3.9 dropped from the matrix (EOL).
+- Upper-bound version pins added in `pyproject.toml`
+  (`torch<3`, `numpy<3`, `nibabel<6`, `matplotlib<4`).
+
+### Fixed
+- Tutorial 08 ridge formula now matches the implementation (the `N*T`
+  scaling factor was missing from the LaTeX).
+- Stale `file:line` citations under `docs/background/` refreshed to
+  point at the current source.
+- "MPS detected; demoting" log message reworded to explain *why* the
+  demotion happens rather than just announcing it.
+
 ## [0.1.0] - 2026-05-11
 
 Initial public release. The recurrent 3D-conv VAE was extracted from a

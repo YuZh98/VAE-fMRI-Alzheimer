@@ -10,9 +10,9 @@ By the end you can read `training_step` and `updating_F` in
 
 ## Where this lives in the repo
 
-- `recvae/model.py:257-302` — `training_step`: composes the four loss terms.
-- `recvae/model.py:209-254` — `updating_F`: closed-form ridge solve.
-- `recvae/train.py:73-103` — alternation: SGD inside the batch loop, then
+- `recvae/model.py:334-386` — `training_step`: composes the four loss terms.
+- `recvae/model.py:269-331` — `updating_F`: closed-form ridge solve.
+- `recvae/train.py:105-130` — alternation: SGD inside the batch loop, then
   one `updating_F` call at the end of each epoch.
 - `recvae/config.py` — `sig_x`, `sig_h`, `lambda_z`, `rho` defaults.
 
@@ -32,7 +32,7 @@ Per batch of `B` subjects rolled out over `T` timesteps:
    ```
    The `2 * B * T` denominator averages over batch and timesteps; the
    `sig_x^2` weight reflects the per-pixel observation noise of a
-   Gaussian likelihood. See `recvae/model.py:281-283`.
+   Gaussian likelihood. See `recvae/losses.py:70-71`.
 
 2. `loss2` — temporal-prior MSE divided by `sig_h^2`.
    ```
@@ -40,21 +40,22 @@ Per batch of `B` subjects rolled out over `T` timesteps:
    ```
    where `g(h) = h @ F^T` is the linear transition. This term pulls the
    posterior path `h_1, h_2, ...` toward a sequence predicted by the
-   transition matrix `F`. See `recvae/model.py:285-286`.
+   transition matrix `F`. See `recvae/losses.py:73-74`.
 
    **Important caveat.** This is *not* the KL term a canonical VAE ELBO
    would have. It is an MSE point-estimate proxy that does MAP-style
-   inference on the latent path. The TODO at `recvae/model.py:273-276`
-   flags this explicitly. See `why_mse_not_kl.md` in this lesson for
-   what a real KL term would look like.
+   inference on the latent path. The opt-in KL alternative lives in
+   `KLRecVAELoss` at `recvae/losses.py:90-163`. See `why_mse_not_kl.md`
+   in this lesson for what a real KL term would look like.
 
 3. `loss_z` — L1 sparsity on the subject-specific noise vectors.
    ```
    loss_z = lambda_z * ||z||_1
    ```
-   `z_vectors` is a `(N_train, latent_dim)` Parameter (see Lesson 06).
+   `z_vectors` is a `(N_train, latent_dim)` Parameter (see
+   [Lesson 06](../06_param_vs_buffer/README.md)).
    L1 keeps most subject offsets near zero so the shared decoder
-   carries the work. See `recvae/model.py:289`.
+   carries the work. See `recvae/losses.py:77`.
 
 4. `loss_F` — Frobenius regularizer on `F`.
    ```
@@ -64,7 +65,7 @@ Per batch of `B` subjects rolled out over `T` timesteps:
    in the loss dict for logging, but the total loss that gets
    `.backward()`-ed is `loss1 + loss2 + loss_z` only. `F_mat` is a buffer
    (no `requires_grad`); it is updated by `updating_F` instead. See
-   `recvae/model.py:288, 291`.
+   `recvae/losses.py:76, 79`.
 
 ### Why alternating optimization
 
@@ -74,11 +75,13 @@ are deep nets). But if we hold those nets fixed and ask "what `F`
 minimizes `loss2 + loss_F`?", the answer is exact: it's a ridge
 regression.
 
-Concretely, write out the parts of the loss that depend on `F`. Drop
-constants and grouping factors and just look at the structure:
+Concretely, write out the parts of the loss that depend on `F`. The
+`loss2` term is averaged over batch and time (`1 / (2 * B * T * sig_h^2)`),
+while `loss_F = rho * ||F||_F^2` carries no such averaging. To match the
+two on a single scale, multiply through by `2 * N * T * sig_h^2`:
 
 ```
-J(F) = sum_{n,t} ||h_{n,t} - F h_{n,t-1}||^2 + 2 * sig_h^2 * rho * ||F||_F^2
+J(F) = sum_{n,t} ||h_{n,t} - F h_{n,t-1}||^2 + 2 * N * T * sig_h^2 * rho * ||F||_F^2
 ```
 
 Stack the posterior states across all subjects and timesteps. Let
@@ -86,23 +89,29 @@ Stack the posterior states across all subjects and timesteps. Let
 shifted one step (`h_{n,t-1}`, with `h_0` prepended at `t=0`). Then
 
 ```
-J(F) = ||Y - X F^T||_F^2 + 2 sig_h^2 rho ||F||_F^2
+J(F) = ||Y - X F^T||_F^2 + 2 N T sig_h^2 rho ||F||_F^2
 ```
 
 Setting the gradient w.r.t. `F^T` to zero gives the normal equations:
 
 ```
-(X^T X + 2 sig_h^2 rho I) F^T = X^T Y
-F^T = (X^T X + 2 sig_h^2 rho I)^{-1} X^T Y
+(X^T X + 2 N T sig_h^2 rho I) F^T = X^T Y
+F^T = (X^T X + 2 N T sig_h^2 rho I)^{-1} X^T Y
 ```
+
+The `2*N*T` factor comes from `loss2`'s normalization by `2*B*T`;
+multiplying through to clear the denominator gives the matched ridge
+update. Drop the factor and the closed form solves a *different*
+objective than the SGD loss — the resulting `F` would be biased toward
+zero by a factor of `N*T`.
 
 This is the standard ridge-regression closed form. Gradient descent
 would slowly approach the same answer; one linear solve gets you there
-in one step. That is exactly the operation in `recvae/model.py:236-254`.
+in one step. That is exactly the operation in `recvae/model.py:311-331`.
 
 ### How the loop alternates
 
-`recvae/train.py:73-103`:
+`recvae/train.py:105-130`:
 
 1. For each epoch, iterate over batches. For each batch:
    - Run `training_step` to get `loss = loss1 + loss2 + loss_z`.
@@ -124,18 +133,18 @@ for the latents *as seen at the end of the previous epoch*.
 Open `recvae/model.py` and read these blocks together with the math
 above:
 
-- `recvae/model.py:281-291` — the four-line composition of `loss1`,
+- `recvae/losses.py:70-79` — the four-line composition of `loss1`,
   `loss2`, `loss_z`, `loss_F`, and the deliberate omission of `loss_F`
   from the summed `loss`.
-- `recvae/model.py:243-247` — building `Y` and `X` by reshaping
+- `recvae/model.py:320-324` — building `Y` and `X` by reshaping
   `h_history_history` and shifting it by one timestep.
-- `recvae/model.py:249-254` — the actual solve, `torch.linalg.solve(XX +
+- `recvae/model.py:326-331` — the actual solve, `torch.linalg.solve(XX +
   rho_I, XY)`, and the in-place `F_mat.copy_` that preserves buffer
   registration.
 
-Then read `recvae/train.py:73-103` and identify the two updates:
-`optimizer.step()` (line 90) is the SGD step; `model.updating_F(...)`
-(line 103) is the closed-form step.
+Then read `recvae/train.py:105-130` and identify the two updates:
+`optimizer.step()` (line 120) is the SGD step; `model.updating_F(...)`
+(line 130) is the closed-form step.
 
 ## Run it
 
@@ -178,5 +187,5 @@ toward zero and the residual climbs.
   Gaussian prior.
 - Kingma and Welling, "Auto-Encoding Variational Bayes" (2014) — the
   canonical ELBO derivation that `loss2` is approximating.
-- `recvae/model.py:273-276` — the in-source TODO that calls out the
-  KL-vs-MSE substitution as a research item.
+- `recvae/losses.py:90-163` — `KLRecVAELoss`, the opt-in canonical-KL
+  alternative to `loss2`'s MSE proxy.

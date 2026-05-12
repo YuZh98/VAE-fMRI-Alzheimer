@@ -67,10 +67,10 @@ class RecVAELoss:
         T = len(h_history)
         denom = 2 * batch.size(0) * T
 
-        loss1 = sum((x - mu).pow(2).sum() for x, mu in zip(x_list, mu_history))
+        loss1 = sum((x - mu).pow(2).sum() for x, mu in zip(x_list, mu_history, strict=True))
         loss1 = loss1 / (self.sig_x**2) / denom
 
-        loss2 = sum((h - gh).pow(2).sum() for h, gh in zip(h_history, gh_history))
+        loss2 = sum((h - gh).pow(2).sum() for h, gh in zip(h_history, gh_history, strict=True))
         loss2 = loss2 / (self.sig_h**2) / denom
 
         loss_F = self.rho * (model.F_mat**2).sum()
@@ -127,17 +127,19 @@ class KLRecVAELoss:
         T = len(h_history)
         denom = 2 * batch.size(0) * T
 
-        loss1 = sum((x - mu).pow(2).sum() for x, mu in zip(x_list, mu_history))
+        loss1 = sum((x - mu).pow(2).sum() for x, mu in zip(x_list, mu_history, strict=True))
         loss1 = loss1 / (self.sig_x**2) / denom
 
         if mu_h_history is None or log_var_h_history is None:
             # Fall back to the MSE proxy when posterior moments aren't passed.
-            loss2 = sum((h - gh).pow(2).sum() for h, gh in zip(h_history, gh_history))
+            loss2 = sum((h - gh).pow(2).sum() for h, gh in zip(h_history, gh_history, strict=True))
             loss2 = loss2 / (self.sig_h**2) / denom
         else:
             sig_h = self.sig_h
             kl_sum = batch.new_zeros(())
-            for mu_h, log_var_h, gh in zip(mu_h_history, log_var_h_history, gh_history):
+            for mu_h, log_var_h, gh in zip(
+                mu_h_history, log_var_h_history, gh_history, strict=True
+            ):
                 var_q = torch.exp(log_var_h)
                 log_sig_q = log_var_h / 2
                 per_dim = (

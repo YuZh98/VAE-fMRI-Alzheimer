@@ -9,16 +9,16 @@ on CPU-only hardware.
 
 ## Where this lives in the repo
 
-- `recvae/data.py:109-128` — `FMRIDataset`: subclasses `Dataset`, returns
+- `recvae/data.py:108-126` — `FMRIDataset`: subclasses `Dataset`, returns
   `(volume, idx)`.
-- `recvae/data.py:130-149` — `build_dataloader`: wraps a `Dataset` in a
+- `recvae/data.py:129-147` — `build_dataloader`: wraps a `Dataset` in a
   `DataLoader` with an optional seeded `torch.Generator` for reproducible
   shuffle.
-- `recvae/data.py:75-106` — `normalize_per_subject`: per-subject min-max
+- `recvae/data.py:74-105` — `normalize_per_subject`: per-subject min-max
   to `[-1, 1]`, with a guard against constant volumes.
-- `recvae/train.py:75-76` — consumer side: the training loop unpacks
+- `recvae/train.py:105-106` — consumer side: the training loop unpacks
   `for batch, batch_index in train_loader`.
-- `recvae/model.py:168` — what `idx` is *for*: `self.z_vectors[which_ones]`
+- `recvae/model.py:215` — what `idx` is *for*: `self.z_vectors[which_ones]`
   looks up each subject's noise vector.
 
 ## The concept
@@ -41,7 +41,7 @@ A `Dataset` is a tiny interface — two methods, `__len__` and
 `FMRIDataset.__getitem__` returns `(self.volumes[idx], idx)`. The first
 slot is the data; the second is the index *into the training set*.
 That index is what `training_step` needs to look up the per-subject
-noise vector — see `recvae/model.py:168`:
+noise vector — see `recvae/model.py:215`:
 
 ```python
 h_tilde = h + self.z_vectors[which_ones]
@@ -80,7 +80,7 @@ supported for torch.Generator() api`) and is unnecessary in the first
 place. `DataLoader` shuffle indices are CPU-side integers; the
 generator does not need to live on the same device as the data.
 
-The fix at `recvae/data.py:142-148` is to omit the device argument:
+The fix at `recvae/data.py:141-147` is to omit the device argument:
 
 ```python
 generator = torch.Generator().manual_seed(seed) if seed is not None else None
@@ -94,7 +94,7 @@ the same seed.
 
 ## Code walk
 
-Read `recvae/data.py:109-128`. Three things to notice:
+Read `recvae/data.py:108-126`. Three things to notice:
 
 - The constructor validates `dim() == 6`. That single guard catches a
   lot of bugs: passing pre-stacked-along-batch tensors, forgetting the
@@ -105,7 +105,7 @@ Read `recvae/data.py:109-128`. Three things to notice:
   `DataLoader` collate stacks the volumes along a new batch dim and
   the indices into a 1-D `LongTensor`.
 
-Then read `recvae/data.py:130-149` (`build_dataloader`) and trace the
+Then read `recvae/data.py:129-147` (`build_dataloader`) and trace the
 `generator` path. Run the demo in this lesson to see it in action.
 
 ## Run it
@@ -146,6 +146,6 @@ random integer label in `{0, 1}` representing a class. Confirm the
 - [PyTorch `torch.utils.data` docs](https://pytorch.org/docs/stable/data.html)
 - `normalization.md` in this lesson — what `normalize_per_subject` is
   doing and why the per-subject choice is research-flagged.
-- `recvae/train.py:75-83` — the consumer side of the loader, including
+- `recvae/train.py:105-116` — the consumer side of the loader, including
   the `h_history_history[which_ones] = ...` indexing trick that needs
   the per-batch indices.

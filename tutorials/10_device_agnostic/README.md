@@ -9,12 +9,12 @@ explicit `.to(device)` calls.
 
 ## Where this lives in the repo
 
-- `recvae/utils.py:29-35` — `get_default_device()`: CUDA -> MPS -> CPU.
-- `recvae/utils.py:38-48` — `to_device()`: recursive move that preserves
+- `recvae/utils.py:61-67` — `get_default_device()`: CUDA -> MPS -> CPU.
+- `recvae/utils.py:70-80` — `to_device()`: recursive move that preserves
   integer dtypes for index tensors.
-- `recvae/utils.py:51-63` — `DeviceDataLoader`: thin wrapper that yields
+- `recvae/utils.py:83-95` — `DeviceDataLoader`: thin wrapper that yields
   device-resident batches.
-- `recvae/model.py:144-146` — `reparametrize`: builds `eps` with
+- `recvae/model.py:191-193` — `reparametrize`: builds `eps` with
   `device=mu_h.device, dtype=mu_h.dtype` instead of relying on a global
   default tensor type.
 
@@ -64,7 +64,7 @@ That looks convenient but is a maintenance disaster:
    hard to find.
 
 The correct pattern is to pass `device=` explicitly to every tensor
-constructor that needs it. `recvae/model.py:145` is the canonical
+constructor that needs it. `recvae/model.py:192` is the canonical
 example:
 
 ```python
@@ -78,7 +78,7 @@ device, and the intent is obvious to anyone reading the code.
 
 If you have to call `.to(device)` on every batch inside every
 training-loop iteration, you will eventually forget. `DeviceDataLoader`
-(`recvae/utils.py:51-63`) wraps a plain `DataLoader` and moves each
+(`recvae/utils.py:83-95`) wraps a plain `DataLoader` and moves each
 batch on iteration:
 
 ```python
@@ -97,8 +97,8 @@ just iterates as if the batches were already on the right device.
 
 ### Preserving integer dtypes
 
-`to_device` (`recvae/utils.py:38-48`) recurses through list/tuple
-batches and moves each tensor. The wrinkle is at lines 46-47:
+`to_device` (`recvae/utils.py:70-80`) recurses through list/tuple
+batches and moves each tensor. The wrinkle is at lines 78-80:
 
 ```python
 if data.dtype in (torch.int64, torch.int32, torch.int16, torch.int8, torch.bool):
@@ -112,7 +112,7 @@ tensors are cast to the configured float dtype.
 That distinction matters because index tensors must stay integral.
 `FMRIDataset.__getitem__` returns `(volume, idx)`; the loader collates
 the indices into a `LongTensor`; that `LongTensor` is then used as
-`self.z_vectors[which_ones]` in `recvae/model.py:168`. If `to_device`
+`self.z_vectors[which_ones]` in `recvae/model.py:215`. If `to_device`
 indiscriminately cast everything to float, the indexing would crash
 (`IndexError: tensors used as indices must be long, int, byte or bool`) or
 silently return wrong rows.
@@ -125,7 +125,7 @@ Open `recvae/utils.py` and read the three functions together:
 - `to_device` — recursion + the integer-preservation branch.
 - `DeviceDataLoader` — twelve lines, one job.
 
-Then check `recvae/model.py:144-146` to see how the reparam trick
+Then check `recvae/model.py:191-193` to see how the reparam trick
 preserves device/dtype without needing any global default.
 
 ## Run it
@@ -167,7 +167,7 @@ device-specific failures and for keeping CI predictable.
 - [`torch.set_default_tensor_type` docs](https://pytorch.org/docs/stable/generated/torch.set_default_tensor_type.html)
   (read the note about "Setting a non-default tensor type can cause
   unexpected results...").
-- `recvae/utils.py:38-48` — the integer-dtype preservation, in
+- `recvae/utils.py:70-80` — the integer-dtype preservation, in
   context.
 - Lesson 09 (`09_dataset_dataloader`) — where the index tensors
   come from in the first place.

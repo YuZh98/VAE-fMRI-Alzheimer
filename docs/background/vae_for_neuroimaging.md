@@ -63,7 +63,7 @@ ELBO(x) = E_{q(z|x)}[log p(x|z)] − KL(q(z|x) || p(z))
 the encoder outputs. To backpropagate gradients through a stochastic
 sample, the **reparameterization trick** writes
 `z = μ + σ · ε` with `ε ~ N(0, I)` so the randomness is shunted to an
-external noise variable. See `recvae/model.py:174-185` and
+external noise variable. See `recvae/model.py:182-193` and
 `tutorials/05_vae_reparam/` for this repo's implementation.
 
 The result is a model that you can train by SGD, sample from, evaluate
@@ -122,7 +122,7 @@ Several published architectures extend the VAE to sequences. Roughly:
   posterior inference. More expressive temporal dependencies than DKF
   at the cost of architectural complexity.
 
-This repository's `RecVAEModel` (`recvae/model.py:72-258`) is closest in
+This repository's `RecVAEModel` (`recvae/model.py:72-386`) is closest in
 spirit to **DKF**: the temporal structure lives entirely in the latent
 recurrence, the emission is the 3-D conv decoder, and the
 encoder/inference head amortizes the posterior. The substantive
@@ -132,8 +132,8 @@ differences are:
   GRU.
 - `F` is not trained by gradient — it is re-solved by **ridge
   regression in closed form** once per epoch
-  (`recvae/model.py:261-319`).
-- Per-subject offsets `z_s` (`recvae/model.py:148-150`) are added in
+  (`recvae/model.py:269-331`).
+- Per-subject offsets `z_s` (`recvae/model.py:156-158`) are added in
   the latent space to absorb subject-specific variation.
 
 These choices are unusual and discussed in `this_models_design.md`.

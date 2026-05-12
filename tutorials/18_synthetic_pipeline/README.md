@@ -24,19 +24,21 @@
   function. Freezes encoder/decoder/inference head/`F_mat`/training
   `z_vectors`, then SGD-optimizes a fresh `z_test` for the test
   subjects against the reconstruction loss.
-- `recvae/train.py:fit` — the same training loop Lesson 15 used.
-- `tutorials/15_train_end_to_end/train_tiny.py` — the immediate
-  predecessor; the present script adds (a) labeled synthetic cohorts
-  and (b) the held-out eval step.
+- `recvae/train.py:fit` — the same training loop
+  [Lesson 15](../15_train_end_to_end/README.md) used.
+- [`tutorials/15_train_end_to_end/train_tiny.py`](../15_train_end_to_end/train_tiny.py)
+  — the immediate predecessor; the present script adds (a) labeled
+  synthetic cohorts and (b) the held-out eval step.
 - `notebooks/RecVAE_on_synthetic.ipynb` — the notebook companion to
   this lesson. Same pipeline, with a CN-vs-AD linear probe added at
   the end.
 
 ## The concept
 
-Up to Lesson 15 every demo trained on a single tensor of random noise:
-useful for exercising shapes and the optimizer, useless for asking the
-model anything about *generalization*. The `synthetic_cohort` generator
+Up to [Lesson 15](../15_train_end_to_end/README.md) every demo trained
+on a single tensor of random noise: useful for exercising shapes and
+the optimizer, useless for asking the model anything about
+*generalization*. The `synthetic_cohort` generator
 fixes that. It produces:
 
 - A low-rank spatial pattern per subject (random mixture of `K=4` shared
@@ -93,8 +95,8 @@ call has no side effects.
 
 `pipeline.py` in this directory:
 
-1. `set_seed(2022)`, `get_default_device()` (demoted to CPU on MPS, same
-   as Lesson 15).
+1. `set_seed(2022)`, `get_default_device()` (falls back to CPU on MPS, same
+   as [Lesson 15](../15_train_end_to_end/README.md)).
 2. `Config(tol_time=4, epochs=2, batch_size=2, learning_rate=1e-5)`.
 3. `synthetic_cohort(n_cn=2, n_ad=2, T=4, seed=2022)` — 4 training
    subjects, half CN half AD.
@@ -124,9 +126,9 @@ training reconstruction loss (the `loss1` component of `fit`'s loss).
 
 ## Why this approach
 
-Lesson 15 trained on `torch.randn` and could not say anything about
-generalization because successive `randn` draws have no shared
-structure. Without a shared generative process there is no "same
+[Lesson 15](../15_train_end_to_end/README.md) trained on `torch.randn`
+and could not say anything about generalization because successive
+`randn` draws have no shared structure. Without a shared generative process there is no "same
 distribution" for a held-out set to come from.
 
 The `synthetic_cohort` generator solves that. It is deliberately not
@@ -161,12 +163,13 @@ needing access to a clinical dataset.
 
 ## Further reading
 
-- Lesson 09 — `Dataset` / `DataLoader` mechanics and per-subject
-  normalization.
-- Lesson 15 — the predecessor end-to-end script; same loop, no
-  cohort labels, no held-out eval.
-- Lesson 17 #4 — research notes on subject-aware splits and on the
-  two design choices for handling `z_s` on held-out subjects (zero
-  it out vs. re-fit it).
-- `notebooks/RecVAE_on_synthetic.ipynb` — same pipeline as a notebook,
-  with an added linear probe on the latents and a PCA baseline.
+- [Lesson 09](../09_dataset_dataloader/README.md) — `Dataset` /
+  `DataLoader` mechanics and per-subject normalization.
+- [Lesson 15](../15_train_end_to_end/README.md) — the predecessor
+  end-to-end script; same loop, no cohort labels, no held-out eval.
+- [Lesson 17](../17_extensions/README.md) #4 — research notes on
+  subject-aware splits and on the two design choices for handling
+  `z_s` on held-out subjects (zero it out vs. re-fit it).
+- [`notebooks/RecVAE_on_synthetic.ipynb`](../../notebooks/RecVAE_on_synthetic.ipynb)
+  — same pipeline as a notebook, with an added linear probe on the
+  latents and a PCA baseline.

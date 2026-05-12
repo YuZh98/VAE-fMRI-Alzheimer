@@ -20,14 +20,14 @@ The five pitfalls correspond to five fixes in the refactor — see
 `tutorials/14_refactor_notebook_to_pkg/before_after.md` for the
 side-by-side before/after of each:
 
-- `recvae/model.py:135-146` — `reparametrize` uses explicit `device=` /
+- `recvae/model.py:182-193` — `reparametrize` uses explicit `device=` /
   `dtype=` (pitfall 1).
-- `recvae/data.py:142-148` — DataLoader generator is CPU-side (pitfall 2).
-- `recvae/model.py:13-20`, `:83-107` — decoder `output_padding` chain
-  (pitfall 3).
-- `recvae/data.py:101-103` — zero-span guard in `normalize_per_subject`
+- `recvae/data.py:141-147` — DataLoader generator is CPU-side (pitfall 2).
+- `recvae/model.py:13-20`, `recvae/model.py:122-154` — decoder
+  `output_padding` chain (pitfall 3).
+- `recvae/data.py:100-104` — zero-span guard in `normalize_per_subject`
   (pitfall 4).
-- `recvae/model.py:109-116` — `nn.Parameter` for `z_vectors`,
+- `recvae/model.py:156-163` — `nn.Parameter` for `z_vectors`,
   `register_buffer` for `F_mat` (pitfall 5).
 
 ## The concept

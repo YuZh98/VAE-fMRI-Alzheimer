@@ -8,7 +8,7 @@ When a subject's volume is constant (all-zero, masking bug, ...), the
 denominator is 0 and PyTorch produces NaN -- which then poisons every
 gradient downstream.
 
-The fix in recvae/data.py:101-103 substitutes span=1 in the degenerate
+The fix in recvae/data.py:100-102 substitutes span=1 in the degenerate
 slots. A constant subject ends up at zero post-normalization, but no
 NaN.
 """
@@ -34,7 +34,7 @@ def naive_normalize(volumes: torch.Tensor) -> torch.Tensor:
 
 
 def safe_normalize(volumes: torch.Tensor) -> torch.Tensor:
-    """Same as naive_normalize but with the recvae/data.py:101-103 guard."""
+    """Same as naive_normalize but with the recvae/data.py:100-102 guard."""
     out = volumes.clone()
     max_v = torch.amax(out, dim=(1, 2, 3, 4, 5))
     min_v = torch.amin(out, dim=(1, 2, 3, 4, 5))
@@ -75,7 +75,7 @@ def main() -> int:
         print(f"weight.grad       : {weight.grad.item()}   (NaN poisons upstream grads)")
         assert torch.isnan(weight.grad).any()
 
-    with section("safe normalize (matches recvae/data.py:101-103)"):
+    with section("safe normalize (matches recvae/data.py:100-102)"):
         safe = safe_normalize(volumes)
         print(f"safe[0] has nan?    : {torch.isnan(safe[0]).any().item()}")
         print(f"safe[1] has nan?    : {torch.isnan(safe[1]).any().item()}   <-- fixed")
@@ -97,7 +97,7 @@ def main() -> int:
         print("  as 'loss is nan starting at batch 7' -- not as a clear error.")
         print("- Fix: replace zero span with 1 (the constant subject ends up")
         print("  at -1 post-normalization, which is finite and harmless).")
-        print("- recvae/data.py:101-103 does exactly this.")
+        print("- recvae/data.py:100-102 does exactly this.")
 
     return 0
 

@@ -10,7 +10,7 @@ including the closed-form-updated `F_mat`).
 
 ## Where this lives in the repo
 
-- `recvae/model.py:109-117` — the registration of `z_vectors` (Parameter)
+- `recvae/model.py:156-163` — the registration of `z_vectors` (Parameter)
   and `F_mat` (Buffer). Both show up in `state_dict()`.
 - Root `README.md` "Save / load" section — the one-liner recipe for
   saving and restoring a trained model.
@@ -29,7 +29,7 @@ For `RecVAEModel` that means: all encoder/decoder/inference-head weights
 and biases, every `BatchNorm3d` running mean and running variance
 (buffers), the `z_vectors` Parameter (subject-specific noise vectors),
 and the `F_mat` Buffer (the linear temporal-prior transition matrix).
-See `recvae/model.py:109-117`:
+See `recvae/model.py:156-163`:
 
 ```python
 z_init = torch.randn(train_size, cfg.latent_dim) * cfg.sig_z
@@ -38,7 +38,7 @@ self.register_buffer("F_mat", torch.rand(cfg.latent_dim, cfg.latent_dim))
 ```
 
 `F_mat` is a Buffer because it is updated by closed-form ridge regression
-(see Lesson 06 and `recvae/model.py:208-254`), not by gradient descent.
+(see Lesson 06 and `recvae/model.py:269-331`), not by gradient descent.
 But it is still part of the model's state, so it still needs to be
 checkpointed — that is exactly why `register_buffer` is the right tool:
 buffers are serialized in `state_dict()` and moved by `.to(device)` just

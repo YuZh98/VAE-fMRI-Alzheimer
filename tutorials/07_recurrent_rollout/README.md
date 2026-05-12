@@ -13,10 +13,10 @@
 
 ## Where this lives in the repo
 
-The rollout itself is at `recvae/model.py:172-206`. The per-timestep
-step is factored out as `vae_step` at `recvae/model.py:152-170`. The two
+The rollout itself is at `recvae/model.py:219-266`. The per-timestep
+step is factored out as `vae_step` at `recvae/model.py:199-217`. The two
 loss terms that consume `mu_history` and (`h_history`, `gh_history`)
-are at `recvae/model.py:280-291`.
+are at `recvae/losses.py:70-79`.
 
 ## The concept
 
@@ -74,7 +74,7 @@ mu, h = self.vae_step(x_list[t], h, ...)  # produces h_t
 h_history.append(h)                       # h_t
 ```
 
-The training loss has a term `||h_t - g(h_{t-1})||^2` (`recvae/model.py:285`).
+The training loss has a term `||h_t - g(h_{t-1})||^2` (`recvae/losses.py:73-74`).
 If we stored only `h_history`, we'd have to redo all the `g_transform`
 calls later. Storing both is cheap (latent dim is 10) and keeps the loss
 expression a single zip.
@@ -128,9 +128,9 @@ training loop alternate "SGD on the encoder/decoder/inference heads" and
 
 ## Further reading
 
-- `recvae/model.py:152-170` — `vae_step`, the per-step body.
-- `recvae/model.py:172-206` — the rollout itself.
-- `recvae/model.py:280-291` — how the loss consumes the four output
+- `recvae/model.py:199-217` — `vae_step`, the per-step body.
+- `recvae/model.py:219-266` — the rollout itself.
+- `recvae/losses.py:70-79` — how the loss consumes the four output
   lists.
 - Lesson 08 on losses and alternating optimization picks up where this
   lesson ends.

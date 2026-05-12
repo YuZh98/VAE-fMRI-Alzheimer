@@ -6,8 +6,8 @@ repository.
 
 ## Development setup
 
-Python 3.9, 3.10, 3.11, 3.12, and 3.13 are all supported (CI exercises
-3.9-3.12 on Ubuntu and macOS).
+Python 3.10, 3.11, and 3.12 are supported (CI exercises 3.10-3.12 on
+Ubuntu and macOS).
 
 ```bash
 git clone https://github.com/YuZh98/VAE-fMRI-Alzheimer
@@ -35,10 +35,13 @@ pytest -v
 
 The full suite is CPU-only and runs in a few seconds.
 
+PRs are gated on `tests.yml` (pytest matrix); the full tutorial demo
+loop runs nightly via `tutorials.yml`.
+
 ## Run every tutorial demo
 
-Every demo script is exercised by CI on every push. To run the same loop
-locally:
+The full demo loop runs nightly on CI; you do not need to wait for it
+on every PR. To run the same loop locally:
 
 ```bash
 for f in tutorials/*/*.py tutorials/*/*/*.py; do
@@ -52,6 +55,9 @@ done
 
 Files whose basename starts with `_` (e.g. `_tutorial_utils.py`) are
 shared helpers and are skipped.
+
+To run `examples/classify_from_latents.py`, install with
+`pip install -e ".[examples]"` (this pulls in `scikit-learn`).
 
 ## Lint and type-check
 
@@ -68,6 +74,15 @@ mypy recvae/
 Mypy is intentionally lenient (`ignore_missing_imports = true`,
 `disable_error_code = ["import-untyped"]`) — it is a smoke check, not a
 strict-mode gate.
+
+`lint.yml` also runs `tools/check_citations.py` to catch drift between
+the tutorial-prose `recvae/file.py:line` citations and the actual line
+numbers in the package. Run it locally before pushing if you've touched
+either the cited code or the tutorial prose:
+
+```bash
+python tools/check_citations.py
+```
 
 ## Pre-commit
 
@@ -99,6 +114,10 @@ commit time. The `pre-commit` config also strips outputs as a safety net.
 - Open the PR back into `main`.
 - Use the PR template in `.github/PULL_REQUEST_TEMPLATE.md` (it is
   applied automatically).
+
+Code review is currently routed via `.github/CODEOWNERS` to @YuZh98.
+Adding a co-maintainer is welcome — please open an issue if you'd like
+to take on review duty for a subtree (e.g. `tutorials/` or `docs/`).
 
 ## Adding a tutorial
 

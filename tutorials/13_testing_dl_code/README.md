@@ -225,7 +225,7 @@ the plumbing will be caught before they reach a training run.
 Look at `recvae/data.py` and pick a function that has *no* test in
 `tests/test_data.py`. Write one. The function `load_subject_volumes` is
 a good candidate — see `tests/test_data.py` for the existing patterns
-and `recvae/data.py:39-72` for the source.
+and `recvae/data.py:38-71` for the source.
 
 ## Further reading
 

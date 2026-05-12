@@ -44,7 +44,7 @@ So in practice this repo expects:
 - truncated or padded to `tol_time` (default 120) timepoints
 - stored as `.nii` or `.nii.gz`
 
-The loaders are in `recvae/data.py:39-72`.
+The loaders are in `recvae/data.py:38-71`.
 
 ## Units, sign, dynamic range
 
@@ -62,7 +62,7 @@ This is why every fMRI pipeline normalizes. Common choices:
 - **Z-score per voxel**: `(x_t - mean_t) / std_t`.
 - **Global min-max** per subject to a fixed range.
 
-This repo uses the last option (`recvae/data.py:75-106`), rescaling each
+This repo uses the last option (`recvae/data.py:74-105`), rescaling each
 subject's full 4-D tensor into `[-1, 1]`. That's a deliberately simple
 choice and the file flags two trade-offs:
 
@@ -133,12 +133,12 @@ outside the approved investigator team. Two practical consequences:
    identifying after facial reconstruction.
 
 This repo follows those constraints — the tests use synthetic tensors
-(`recvae/data.py:151-251`), so the test suite runs without any real
+(`recvae/data.py:150-250`), so the test suite runs without any real
 fMRI data on disk.
 
 ## What "120 timepoints" means
 
-`tol_time = 120` in `recvae/config.py:29` is not arbitrary. At a typical
+`tol_time = 120` in `recvae/config.py:28` is not arbitrary. At a typical
 resting-state TR of ~3 seconds, 120 volumes = **6 minutes** of scanning.
 That's long enough to capture the slow (0.01-0.1 Hz) spontaneous
 fluctuations that resting-state fMRI is sensitive to: a 0.01 Hz
@@ -148,7 +148,7 @@ recommended range (8-15 minutes for reliable functional connectivity);
 ADNI's older protocols sit there.
 
 Volumes longer than `tol_time` are truncated; shorter ones raise rather
-than silently stack at the wrong shape (`recvae/data.py:65-68`).
+than silently stack at the wrong shape (`recvae/data.py:64-67`).
 
 ## Why the train/test split is hard
 

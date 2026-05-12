@@ -42,7 +42,7 @@ def main() -> int:
         print("  RuntimeError: Device type CUDA is not supported for ...")
         print("It is also unnecessary -- DataLoader indices are host-side.")
 
-    with section("the safe pattern (matches recvae/data.py:142-148)"):
+    with section("the safe pattern (matches recvae/data.py:141-147)"):
         # Note: NO device= argument. The generator lives on CPU.
         g = torch.Generator().manual_seed(2022)
         print(f"generator      = {g}")

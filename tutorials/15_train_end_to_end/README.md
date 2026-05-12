@@ -17,16 +17,16 @@
 
 ## Where this lives in the repo
 
-- `recvae/train.py:13-103` — the `fit` function this demo calls. The
-  alternation is on lines 73-103 (batch loop then `updating_F`).
-- `recvae/model.py:257-302` — `training_step`, the per-batch loss
+- `recvae/train.py:19-159` — the `fit` function this demo calls. The
+  alternation is on lines 105-130 (batch loop then `updating_F`).
+- `recvae/model.py:334-386` — `training_step`, the per-batch loss
   composition.
-- `recvae/model.py:209-254` — `updating_F`, the closed-form ridge
+- `recvae/model.py:269-331` — `updating_F`, the closed-form ridge
   solve called once per epoch by `fit`.
 - `recvae/config.py` — the `Config` dataclass.
 - `recvae/utils.py` — `set_seed`, `get_default_device`, the
   `DeviceDataLoader` wrapper.
-- `recvae/data.py:75-106` — `normalize_per_subject` (per-subject min-max
+- `recvae/data.py:74-105` — `normalize_per_subject` (per-subject min-max
   to `[-1, 1]`).
 - The README's "Train on real data" snippet — same pattern as the demo
   but with real NIfTI files instead of synthetic tensors.
@@ -78,7 +78,8 @@ do not need to train to convergence to see it. With
 takes well under 90s on CPU.
 
 The bigger spatial shape `(1, 91, 109, 91)` is preserved because
-the encoder/decoder layer math depends on it (see Lesson 04 on
+the encoder/decoder layer math depends on it (see
+[Lesson 04](../04_decoder_convtranspose/README.md) on
 `output_padding`). The smaller knobs are `N`, `T`, `batch_size`.
 
 ### Why a higher learning rate for the demo
@@ -115,7 +116,8 @@ tensor attributes and would be silently dropped.
 
 `train_tiny.py` in this directory:
 
-1. `set_seed(2022)` and `get_default_device()` — Lesson 11 patterns.
+1. `set_seed(2022)` and `get_default_device()` —
+   [Lesson 11](../11_reproducibility/README.md) patterns.
 2. `volumes = torch.randn(N=4, 1, 91, 109, 91, T=4)` — synthetic
    stand-in for `load_subject_volumes`.
 3. `normalize_per_subject(volumes)` — same as production.
@@ -165,9 +167,12 @@ this script is its didactic cousin.
 
 - README "Train on real data" — same pattern, real NIfTI inputs,
   default config.
-- `recvae/train.py:73-103` — the alternation loop, top to bottom.
-- Lesson 08 — the math behind the closed-form `F` update that
-  `fit` calls once per epoch.
-- Lesson 11 — RNG seeding and what `set_seed` actually pins.
-- Lesson 12 — save/load patterns, `map_location`, the role of
-  Parameters vs buffers in `state_dict()`.
+- `recvae/train.py:105-130` — the alternation loop, top to bottom.
+- [Lesson 08](../08_losses_alt_optim/README.md) — the math behind the
+  closed-form `F` update that `fit` calls once per epoch.
+- [Lesson 10](../10_device_agnostic/README.md) — device-agnostic code
+  and the MPS-backend caveat referenced in the script.
+- [Lesson 11](../11_reproducibility/README.md) — RNG seeding and what
+  `set_seed` actually pins.
+- [Lesson 12](../12_save_load/README.md) — save/load patterns,
+  `map_location`, the role of Parameters vs buffers in `state_dict()`.

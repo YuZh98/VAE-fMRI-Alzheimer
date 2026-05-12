@@ -24,16 +24,16 @@ The model is a recurrent VAE over 4-D fMRI volumes
 - **Decoder** — symmetric to the encoder. `Linear + Unflatten` back to
   `(32, 5, 6, 5)` then four `ConvTranspose3d` stages with
   carefully-chosen `output_padding` because the spatial extents are
-  odd (`recvae/model.py:121-146`). Final `Tanh` matches the `[-1, 1]`
+  odd (`recvae/model.py:121-154`). Final `Tanh` matches the `[-1, 1]`
   range of the normalized input.
 - **Latent recurrence** — a linear temporal prior
-  `g(h) = h F^T` (`recvae/model.py:187-189`). `F` is registered as a
-  Buffer (`recvae/model.py:152-155`) because it is updated by
+  `g(h) = h F^T` (`recvae/model.py:195-197`). `F` is registered as a
+  Buffer (`recvae/model.py:160-163`) because it is updated by
   closed-form ridge, not gradient descent.
 - **Per-subject offsets** — an `nn.Parameter` of shape
   `(N_train, latent_dim)` indexed by the subject's position in the
   training set, added into the latent state before decoding
-  (`recvae/model.py:148-150`, `recvae/model.py:207`).
+  (`recvae/model.py:156-158`, `recvae/model.py:215`).
 
 ## Why 3-D conv (not 2-D slice, not 1-D timeseries)
 
@@ -118,7 +118,7 @@ has a closed-form minimizer via the normal equation
 ```
 
 where `Y` stacks all posterior states and `X` stacks the same shifted
-by one (with the shared `h_0` prepended). See `recvae/model.py:261-319`
+by one (with the shared `h_0` prepended). See `recvae/model.py:269-331`
 for the derivation in the docstring and the implementation.
 
 Why solve it analytically each epoch instead of letting SGD drift `F`
@@ -155,11 +155,11 @@ self.z_vectors = nn.Parameter(torch.randn(train_size, latent_dim) * sig_z)
 ```
 
 `z_vectors` is **indexed by the subject's position in the training
-set** (`recvae/model.py:207`). That means `z_s` for a new subject does
+set** (`recvae/model.py:215`). That means `z_s` for a new subject does
 not exist in the model — there is no way to encode a held-out subject's
 offset without re-running optimization.
 
-The repo works around this in `recvae/evaluation.py:109-...` by
+The repo works around this in `recvae/evaluation.py:108-205` by
 **re-fitting `z_s` for held-out subjects** by a few SGD steps over the
 reconstruction loss with the rest of the network frozen, which is
 acceptable as long as you budget the compute for it.
@@ -173,12 +173,12 @@ optimization. A sketch of this is forward-referenced in
 ## Why L1 sparsity on `z_s`
 
 **UNUSUAL CHOICE WITH AN INTERNAL INCONSISTENCY.** The training loss
-includes `loss_z = λ_z ‖z_vectors‖_1` (`recvae/losses.py:78`,
-`recvae/config.py:41`). The motivation is to encourage only a few
+includes `loss_z = λ_z ‖z_vectors‖_1` (`recvae/losses.py:77`,
+`recvae/config.py:40`). The motivation is to encourage only a few
 dimensions of the offset to fire per subject — a sparse subject code.
 
 The inconsistency: `z_vectors` is **initialized from a Gaussian** with
-scale `sig_z` (`recvae/model.py:148-150`). A Gaussian prior is the
+scale `sig_z` (`recvae/model.py:156-158`). A Gaussian prior is the
 maximum-entropy distribution for a given variance and corresponds to
 **L2** (ridge) regularization in MAP terms. An **L1** penalty
 corresponds to a **Laplace** prior. The model uses one at
@@ -203,7 +203,7 @@ a `log_var_h`, but `loss2` doesn't use it — it falls into the
 reconstruction term only.
 
 A canonical KL implementation is provided in `KLRecVAELoss`
-(`recvae/losses.py:92-...`) and discussed in
+(`recvae/losses.py:90-163`) and discussed in
 `tutorials/08_losses_alt_optim/why_mse_not_kl.md`. Switching to it is
 one of the cleanest small experiments to run on this codebase.
 
@@ -216,12 +216,12 @@ mode is in that direction) and there is no longer a clean ELBO to quote.
 
 **STANDARD with a small-batch caveat.** Five `BatchNorm3d` layers in
 the encoder and decoder normalize across the batch and spatial axes per
-channel (`recvae/model.py:91-146`). Standard practice in 3-D
+channel (`recvae/model.py:90-154`). Standard practice in 3-D
 convolutional networks because (a) deep networks have internal
 covariate shift that batch normalization mitigates, (b) it has a mild
 regularization effect, and (c) `LeakyReLU` after BN is well-trodden.
 
-The caveat: `batch_size = 4` (`recvae/config.py:44`) is small. Batch
+The caveat: `batch_size = 4` (`recvae/config.py:43`) is small. Batch
 statistics computed from 4 volumes are noisy, and at eval time
 BatchNorm switches to running statistics that may not match the
 training-time per-batch distribution. **GroupNorm** or **InstanceNorm**
@@ -232,7 +232,7 @@ would be more robust at this batch size. A swap is sketched in
 
 **SLOW CHOICE inherited from the canonical notebook.** The hyperparameter
 table shows `learning_rate = 1e-6` with vanilla SGD
-(`recvae/config.py:45`, `recvae/train.py:74`). For a network of this
+(`recvae/config.py:44`, `recvae/train.py:85`). For a network of this
 size, a learning rate that small means almost imperceptible per-step
 movement; 500 epochs is a lot of compute for a slow optimizer.
 

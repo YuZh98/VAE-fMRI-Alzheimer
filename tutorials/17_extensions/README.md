@@ -14,13 +14,13 @@ RecVAE.
 ## Where this lives in the repo
 
 - Root `README.md` "Known limitations" — author's framing of these.
-- `recvae/model.py:273-276` — `TODO(research)` on `loss2` being MSE
-  instead of KL.
-- `recvae/config.py:25-29` — `TODO(research)` on making `sig_x`,
+- `recvae/losses.py:73-74` — the MSE-only `loss2` that should become a
+  proper KL term.
+- `recvae/config.py:32-33` — `TODO(research)` on making `sig_x`,
   `sig_h`, `sig_z` learnable.
-- `recvae/train.py:36-37` — `TODO(research)` on swapping SGD@1e-6 for
+- `recvae/train.py:52-53` — `TODO(research)` on swapping SGD@1e-6 for
   AdamW + cosine.
-- `recvae/data.py:80-86` — note on per-subject min-max normalization
+- `recvae/data.py:79-85` — note on per-subject min-max normalization
   destroying inter-subject intensity differences.
 
 ## The concept
@@ -34,7 +34,7 @@ change experimental hygiene.
 
 ### 1. Real KL term (replace `loss2`)
 
-**Limitation.** `loss2` in `recvae/model.py:285-286` is
+**Limitation.** `loss2` in `recvae/losses.py:73-74` is
 
 ```
 sum_t ||h_t - g(h_{t-1})||^2 / (2 B T sig_h^2)
@@ -44,7 +44,10 @@ This is MAP point estimation on the latent path. The canonical VAE
 ELBO requires `KL(q(h_t | x_t, h_{t-1}) || p(h_t | h_{t-1}))` where
 `p` is the temporal prior `N(g(h_{t-1}), sig_h^2 I)`.
 
-**TODO citation.** `recvae/model.py:273-276` flags this explicitly.
+**TODO citation.** The MSE form is preserved in `recvae/losses.py:73-74`;
+the canonical KL alternative is implemented as `KLRecVAELoss` at
+`recvae/losses.py:90-163` and is opt-in via the `loss_fn=` argument to
+`training_step`.
 
 **Fix sketch.** The KL between two diagonal Gaussians has a closed
 form. With `q = N(mu_h, sigma_h^2 I)` (the inference output) and
@@ -64,7 +67,7 @@ with a `TODO` in that file.
 **Limitation.** `sig_x`, `sig_h`, `sig_z` are fixed floats in `Config`.
 They weight the loss terms but the model cannot tune them.
 
-**TODO citation.** `recvae/config.py:25-29`.
+**TODO citation.** `recvae/config.py:32-33`.
 
 **Fix sketch.** Move the three sigmas off `Config` and onto `RecVAEModel`
 as `nn.Parameter`s. Train an unconstrained log-sigma and apply
@@ -89,7 +92,7 @@ so you can see them calibrate.
 That is slow even on a small dataset, and the canonical noise scales
 amplify the issue.
 
-**TODO citation.** `recvae/train.py:36-37`.
+**TODO citation.** `recvae/train.py:52-53`.
 
 **Fix sketch.** Two-line change to `fit`:
 
@@ -135,7 +138,7 @@ scans.
 
 ### 5. Normalization scheme
 
-**Limitation.** `normalize_per_subject` in `recvae/data.py:75-106`
+**Limitation.** `normalize_per_subject` in `recvae/data.py:74-105`
 rescales each subject to `[-1, 1]` based on that subject's own
 min/max. This destroys absolute-intensity differences across subjects
 — differences that may carry information about the cohort the subject
@@ -228,5 +231,5 @@ TODOs.
   scales in the variational setting (#2).
 - Loshchilov and Hutter, *Decoupled Weight Decay Regularization* (2019,
   AdamW) and *SGDR* (2017, cosine annealing) — for #3.
-- `recvae/model.py:257-302` and `recvae/train.py:13-103` — the code
+- `recvae/model.py:334-386` and `recvae/train.py:19-159` — the code
   these extensions modify.
