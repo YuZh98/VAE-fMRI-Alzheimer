@@ -9,7 +9,7 @@ description = "Recurrent VAE for temporal fMRI representation learning (Alzheime
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
-authors = [{name = "Yu Zheng"}]
+authors = [{name = "Hugh Zheng"}]
 keywords = [
     "pytorch",
     "vae",

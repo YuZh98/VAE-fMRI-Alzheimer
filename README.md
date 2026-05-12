@@ -179,7 +179,7 @@ see [`docs/background/vae_for_neuroimaging.md`](docs/background/vae_for_neuroima
 
 ## Maintainers
 
-- Yu Zheng ([@YuZh98](https://github.com/YuZh98)) — primary author and maintainer.
+- Hugh Zheng ([@YuZh98](https://github.com/YuZh98)) — primary author and maintainer.
 
 Open an issue if you'd like to be added as a co-maintainer.
 

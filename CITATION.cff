@@ -10,7 +10,7 @@ abstract: >
   requiring access to ADNI.
 authors:
   - family-names: Zheng
-    given-names: Yu
+    given-names: Hugh
 version: 0.1.0
 date-released: 2026-05-11
 license: Apache-2.0
