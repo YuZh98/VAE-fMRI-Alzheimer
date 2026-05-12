@@ -41,14 +41,17 @@ rollouts, alternating optimization, reproducibility, testing DL code,
 and research extensions. Each lesson has a short README and at least
 one runnable script.
 
-## Examples
+## Visuals
 
 | Loss curve | Reconstruction | Latent trajectory |
 |---|---|---|
 | ![loss](docs/assets/loss_curve.png) | ![recon](docs/assets/recon_slice.png) | ![latents](docs/assets/latent_trajectory.png) |
 
-Generated from `notebooks/RecVAE_on_synthetic.ipynb` (5 epochs on 8 synthetic
-subjects, CPU). Regenerate with `python tools/make_figures.py`.
+Generated from `tools/make_figures.py` (30 epochs of AdamW@1e-3 on 8
+synthetic subjects, CPU, ~30s). The reconstruction panel shows that on
+this minimal setup the decoder converges to roughly the per-subject
+mean — recovering high-frequency voxel structure needs a wider decoder
+and a different output activation. See the Limitations section.
 
 ## Architecture
 
@@ -172,6 +175,14 @@ including a few choices that need an owner decision before they change:
 - **SGD@1e-6 is slow.** AdamW@~1e-4 with a scheduler is likely to
   converge faster.
 - **No KL annealing / β-VAE.** Moot without an explicit KL term.
+- **Decoder capacity is small.** With default channels `[4, 8, 16, 32]`
+  and a `Tanh` output applied to per-subject min-max-normalized inputs,
+  the decoder converges to ~constant-mean output and does not recover
+  per-voxel structure (verified by overfit-a-single-volume test:
+  Pearson(x, mu) ≈ 0.03 after 500 epochs of AdamW). Widening to
+  `[16, 32, 64, 128]` and dropping the final `Tanh` is the obvious fix
+  but changes the model contract; see `docs/background/this_models_design.md`
+  for the empirical findings and `examples/wide_decoder.py` for a sketch.
 
 This is a reference implementation and teaching artifact, not a
 peer-reviewed method or clinical tool. For stronger baselines on ADNI
