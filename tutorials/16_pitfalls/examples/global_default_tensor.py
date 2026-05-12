@@ -29,7 +29,7 @@ def main() -> int:
         print("         that contains the set_default_tensor_type call will")
         print("         raise immediately. The setting is process-wide global.")
 
-    with section("the safe pattern (matches recvae/model.py:135-146)"):
+    with section("the safe pattern (matches recvae/model.py:182-193)"):
         # Always pass device= and dtype= explicitly. The tensor lands on
         # exactly the device you asked for, with the dtype you asked for,
         # no global side effects.
@@ -51,9 +51,9 @@ def main() -> int:
         assert x.device == chosen
 
     with section("how the recvae package handles this"):
-        print("recvae/model.py:135-146 -- reparametrize() passes device=mu_h.device")
-        print("recvae/data.py:142-148  -- DataLoader uses CPU generator")
-        print("recvae/utils.py:29-35   -- get_default_device picks CUDA/MPS/CPU")
+        print("recvae/model.py:182-193 -- reparametrize() passes device=mu_h.device")
+        print("recvae/data.py:141-147  -- DataLoader uses CPU generator")
+        print("recvae/utils.py:61-67   -- get_default_device picks CUDA/MPS/CPU")
         print("No torch.set_default_tensor_type anywhere in the package.")
 
     return 0

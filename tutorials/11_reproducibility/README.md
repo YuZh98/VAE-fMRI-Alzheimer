@@ -11,9 +11,9 @@ original notebook hit in its `DataLoader` generator.
 
 ## Where this lives in the repo
 
-- `recvae/utils.py:13-26` — `set_seed(seed)` pins all the RNG sources
+- `recvae/utils.py:15-58` — `set_seed(seed)` pins all the RNG sources
   described below.
-- `recvae/data.py:142-148` — `build_dataloader` seeds a CPU-side
+- `recvae/data.py:141-147` — `build_dataloader` seeds a CPU-side
   `torch.Generator()` for deterministic shuffles.
 - `tests/conftest.py:15-18` — an autouse fixture calls `set_seed(0)`
   before every test so the suite is bitwise reproducible.
@@ -77,7 +77,7 @@ unless you pass `generator=`. Passing a fresh seeded generator makes the
 shuffle reproducible across runs. The catch is **what device the
 generator lives on**.
 
-`recvae/data.py:142-148` constructs the generator with no device
+`recvae/data.py:141-147` constructs the generator with no device
 argument, which means CPU:
 
 ```python

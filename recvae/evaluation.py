@@ -113,14 +113,22 @@ def evaluate_held_out(
     inner_steps: int = 100,
     inner_lr: float = 1e-3,
     inner_sig_z: float = 1.0,
+    lambda_z: float = 0.0,
 ) -> dict:
     """Score a frozen model on held-out subjects by fitting their z_s only.
 
     Freezes the encoder, decoder, inference head, F buffer, and training
     ``z_vectors``. A fresh ``z_test`` of shape ``(N_test, latent_dim)`` is
     optimized for ``inner_steps`` plain SGD steps on the reconstruction
-    MSE (the ``loss1`` term only). Returns the final reconstruction MSE,
-    the optimized ``z_test``, and the per-step latent trajectory ``h_test``.
+    MSE (the ``loss1`` term). When ``lambda_z > 0`` the inner-loop
+    objective also includes ``lambda_z * mean(|z_test|)``, matching the
+    L1 sparsity penalty applied during training. Pass
+    ``lambda_z=cfg.lambda_z`` to match the training-time L1 regularization
+    on ``z_s``; the default of ``0`` keeps the inference-time ``z`` purely
+    reconstruction-driven (backward-compatible with the original behavior).
+
+    Returns the final reconstruction MSE, the optimized ``z_test``, and
+    the per-step latent trajectory ``h_test``.
 
     Model parameters are guaranteed to be unchanged after the call: the
     function tracks the original ``requires_grad`` flags and restores them
@@ -135,6 +143,9 @@ def evaluate_held_out(
     inner_steps : number of inner SGD iterations.
     inner_lr : learning rate for the inner SGD on z_test.
     inner_sig_z : initialization std for ``z_test``.
+    lambda_z : weight of the L1 penalty on ``z_test`` during the inner
+        loop. ``0`` (default) disables it and reproduces the original
+        purely-reconstruction inner objective.
 
     Returns
     -------
@@ -178,7 +189,10 @@ def evaluate_held_out(
             # x_stack: (N, 1, X, Y, Z, T) -> (N, T, 1, X, Y, Z) to match mu_stack.
             x_stack = volumes_test.permute(0, 5, 1, 2, 3, 4).contiguous()
             recon = (x_stack - mu_stack).pow(2).mean()
-            recon.backward()
+            # When lambda_z > 0, match training-time L1 sparsity on z_s.
+            # Normalize by n_test so penalty scale is independent of held-out cohort size.
+            loss = recon + lambda_z * z_test.abs().sum() / n_test if lambda_z > 0.0 else recon
+            loss.backward()
             opt.step()
 
         # Final forward to record h_test and the post-fit MSE.

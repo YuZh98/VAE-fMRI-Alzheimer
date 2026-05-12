@@ -80,6 +80,43 @@ def test_evaluate_held_out_changes_z(small_cfg, synthetic_volumes):
     )
 
 
+def test_evaluate_held_out_lambda_z_shrinks_z(small_cfg, synthetic_volumes):
+    """lambda_z > 0 must drive z_test toward smaller magnitude than lambda_z = 0."""
+    model = RecVAEModel(train_size=4, cfg=small_cfg)
+    volumes_test = synthetic_volumes[:2]
+    h0 = torch.zeros(1, model.latent_dim)
+
+    # Pin RNG so both runs start from the same z_test init. We seed once
+    # before each call because evaluate_held_out draws torch.randn for the
+    # init internally.
+    torch.manual_seed(0)
+    out_no_l1 = evaluate_held_out(
+        model,
+        volumes_test,
+        h0,
+        inner_steps=20,
+        inner_lr=1e-2,
+        inner_sig_z=0.5,
+        lambda_z=0.0,
+    )
+    torch.manual_seed(0)
+    out_with_l1 = evaluate_held_out(
+        model,
+        volumes_test,
+        h0,
+        inner_steps=20,
+        inner_lr=1e-2,
+        inner_sig_z=0.5,
+        lambda_z=1.0,
+    )
+
+    norm_no_l1 = out_no_l1["z_test"].abs().sum().item()
+    norm_with_l1 = out_with_l1["z_test"].abs().sum().item()
+    assert norm_with_l1 < norm_no_l1, (
+        f"lambda_z>0 should shrink |z_test|: {norm_with_l1=} vs {norm_no_l1=}",
+    )
+
+
 def test_evaluate_held_out_does_not_mutate_model_params(small_cfg, synthetic_volumes):
     """Model parameters and buffers must be identical before and after the call."""
     model = RecVAEModel(train_size=4, cfg=small_cfg)

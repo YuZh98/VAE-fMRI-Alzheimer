@@ -10,7 +10,7 @@ and a `verify_torch.py` run that confirms PyTorch can see your hardware.
 
 - `requirements.txt`, `requirements-dev.txt` — pinned dependency lists.
 - `pyproject.toml` — package metadata for the editable install.
-- `recvae/utils.py:29-35` — `get_default_device()` picks CUDA, then MPS, then CPU.
+- `recvae/utils.py:61-67` — `get_default_device()` picks CUDA, then MPS, then CPU.
 - `tutorials/_tutorial_utils.py` — the `sys.path` shim that lets every demo
   `import recvae` without an editable install.
 

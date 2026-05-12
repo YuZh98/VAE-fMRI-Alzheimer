@@ -87,7 +87,7 @@ def main() -> int:
         finally:
             pathlib.Path(tmp_path).unlink(missing_ok=True)
 
-    with section("how recvae avoids this (recvae/model.py:109-116)"):
+    with section("how recvae avoids this (recvae/model.py:156-163)"):
         print("self.z_vectors = nn.Parameter(...)         # learnable subject noise")
         print("self.register_buffer('F_mat', ...)         # closed-form, no grad")
         print()

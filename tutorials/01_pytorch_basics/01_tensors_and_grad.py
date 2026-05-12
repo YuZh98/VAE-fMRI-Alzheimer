@@ -27,7 +27,7 @@ def main() -> int:
         assert torch.allclose(x.grad, torch.tensor([2.0, 4.0, 6.0]))
 
     with section("torch.no_grad disables graph recording"):
-        # Mirrors @torch.no_grad() on updating_F at recvae/model.py:209.
+        # Mirrors @torch.no_grad() on updating_F at recvae/model.py:269.
         with torch.no_grad():
             z = (x * x).sum()
         print(f"z          = {z.item():.4f}")

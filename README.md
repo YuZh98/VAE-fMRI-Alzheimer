@@ -8,8 +8,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python ≥3.9](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 [![PyTorch ≥2.0](https://img.shields.io/badge/pytorch-2.0%2B-ee4c2c)](https://pytorch.org/)
-[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)](#citation)
-<sub>(DOI will be issued on first tagged release.)</sub>
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/YuZh98/VAE-fMRI-Alzheimer/blob/main/notebooks/RecVAE_on_synthetic.ipynb)
 
 ## Why this repo
 
@@ -37,9 +36,19 @@ pytest -v                                              # 34 tests, ~5s
 python tutorials/15_train_end_to_end/train_tiny.py     # synthetic, ~3s
 ```
 
+> Note: the local directory name after clone is `VAE-fMRI-Alzheimer` (matches the GitHub repo); the Python package importable as `recvae`.
+
 For a full end-to-end run on synthetic data, see
 [`notebooks/RecVAE_on_synthetic.ipynb`](notebooks/RecVAE_on_synthetic.ipynb)
 (Open-in-Colab link will be added once the notebook lands on `main`).
+
+## 30-minute tour
+
+1. Run `python tutorials/00_setup/verify_torch.py` (5s) — confirms environment.
+2. Run `pytest -q` (5s) — confirms the package works.
+3. Open `tutorials/15_train_end_to_end/train_tiny.py` and run it (~3s) — your first end-to-end training run on synthetic data.
+4. Open `notebooks/RecVAE_on_synthetic.ipynb` (run in Colab or locally) — full pipeline: synthesize data → train → held-out evaluation → linear-probe CN vs AD.
+5. Browse `tutorials/README.md` and pick a lesson — the 18 lessons cover everything from 3D-conv arithmetic to research extensions.
 
 ## Tutorial series
 
@@ -48,6 +57,15 @@ shapes, 3D-conv arithmetic, the reparameterization trick, recurrent
 rollouts, alternating optimization, reproducibility, testing DL code, and
 research extensions. Every lesson has a short README and at least one
 runnable script. CI runs every script on every push.
+
+## Visuals
+
+| Loss curve | Reconstruction | Latent trajectory |
+|---|---|---|
+| ![loss](docs/assets/loss_curve.png) | ![recon](docs/assets/recon_slice.png) | ![latents](docs/assets/latent_trajectory.png) |
+
+Generated from `notebooks/RecVAE_on_synthetic.ipynb` (5 epochs on 8 synthetic
+subjects, CPU). Regenerate with `python tools/make_figures.py`.
 
 ## Architecture
 
@@ -187,6 +205,12 @@ This is NOT:
 - A SOTA model — see [`docs/background/vae_for_neuroimaging.md`](docs/background/vae_for_neuroimaging.md) for stronger alternatives.
 - A clinical tool — the included synthetic data is fictional and ADNI use
   is for learning, not diagnosis.
+
+## Maintainers
+
+- Yu Zheng ([@YuZh98](https://github.com/YuZh98)) — primary author and maintainer.
+
+Open an issue if you'd like to be added as a co-maintainer.
 
 ## Citation
 

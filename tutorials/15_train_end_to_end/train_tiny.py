@@ -8,6 +8,7 @@ save/reload round-trip.
 Runs on CPU in well under 90s. No real fMRI data required.
 """
 
+import argparse
 import pathlib
 import sys
 import tempfile
@@ -31,16 +32,44 @@ from recvae import (  # noqa: E402
 )
 
 
+def _save_loss_curve(history: list[float], title: str) -> str:
+    """Plot ``history`` and write it to a fresh tempdir; return the path."""
+    import matplotlib
+
+    matplotlib.use("Agg")  # headless: works in CI / over SSH / etc.
+    import matplotlib.pyplot as plt
+
+    out_dir = tempfile.mkdtemp(prefix="recvae_loss_")
+    out_path = str(pathlib.Path(out_dir) / "loss_curve.png")
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(range(1, len(history) + 1), history, marker="o")
+    ax.set_xlabel("epoch")
+    ax.set_ylabel("train loss")
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return out_path
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Save a loss curve PNG to a temporary directory and print its path.",
+    )
+    args = parser.parse_args()
     set_seed(2022)
     # get_default_device() picks CUDA / MPS / CPU. CI runs on CPU; on a
     # Mac dev machine this resolves to MPS. RecVAE has known MPS-backend
     # quirks (the .item() call inside fit() can index oddly), so we
-    # demote to CPU for the demo. The pattern below is the production
+    # fall back to CPU for the demo. The pattern below is the production
     # one — swap the conditional out for a plain assignment in real code.
     device = get_default_device()
     if device.type == "mps":
-        banner("MPS detected; demoting to CPU for demo stability")
+        banner("MPS detected. Using CPU for this demo (model has known MPS quirks; see Lesson 10).")
         device = torch.device("cpu")
 
     # Demo-sized config. lr=1e-5 is ten times the production default
@@ -79,6 +108,11 @@ def main() -> int:
         history = result["train_loss_history"]
         print(f"train_loss_history: {history}")
         assert isinstance(history, list) and len(history) > 0, history
+
+    if args.plot:
+        with section("plot loss curve"):
+            path = _save_loss_curve(history, title="Lesson 15: train_tiny loss")
+            print(f"loss_curve saved to: {path}")
 
     with section("save / reload state_dict, confirm forward pass matches"):
         # F_mat (buffer) and z_vectors (Parameter) both live in state_dict

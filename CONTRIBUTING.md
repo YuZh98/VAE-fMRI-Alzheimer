@@ -35,10 +35,13 @@ pytest -v
 
 The full suite is CPU-only and runs in a few seconds.
 
+PRs are gated on `tests.yml` (pytest matrix); the full tutorial demo
+loop runs nightly via `tutorials.yml`.
+
 ## Run every tutorial demo
 
-Every demo script is exercised by CI on every push. To run the same loop
-locally:
+The full demo loop runs nightly on CI; you do not need to wait for it
+on every PR. To run the same loop locally:
 
 ```bash
 for f in tutorials/*/*.py tutorials/*/*/*.py; do
@@ -52,6 +55,9 @@ done
 
 Files whose basename starts with `_` (e.g. `_tutorial_utils.py`) are
 shared helpers and are skipped.
+
+To run `examples/classify_from_latents.py`, install with
+`pip install -e ".[examples]"` (this pulls in `scikit-learn`).
 
 ## Lint and type-check
 
@@ -99,6 +105,10 @@ commit time. The `pre-commit` config also strips outputs as a safety net.
 - Open the PR back into `main`.
 - Use the PR template in `.github/PULL_REQUEST_TEMPLATE.md` (it is
   applied automatically).
+
+Code review is currently routed via `.github/CODEOWNERS` to @YuZh98.
+Adding a co-maintainer is welcome — please open an issue if you'd like
+to take on review duty for a subtree (e.g. `tutorials/` or `docs/`).
 
 ## Adding a tutorial
 

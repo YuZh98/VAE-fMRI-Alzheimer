@@ -30,6 +30,10 @@ jobs:
       - name: Ruff format check
         run: ruff format --check recvae/ tests/
 
+      - name: Check citation drift
+        continue-on-error: false
+        run: python tools/check_citations.py
+
       - name: Mypy smoke check
         continue-on-error: true
         run: mypy --ignore-missing-imports --disable-error-code=import-untyped recvae/

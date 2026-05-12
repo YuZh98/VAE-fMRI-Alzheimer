@@ -12,9 +12,9 @@ encoder and back up the decoder.
 - The convention block is documented at the top of the model module:
   `recvae/model.py:1-21`.
 - The encoder slices time off the input with `x[..., t]` at
-  `recvae/model.py:196` — only possible because T is the last axis.
-- Encoder stages: `recvae/model.py:50-75`.
-- Decoder stages: `recvae/model.py:82-107`.
+  `recvae/model.py:247` — only possible because T is the last axis.
+- Encoder stages: `recvae/model.py:90-114`.
+- Decoder stages: `recvae/model.py:122-154`.
 
 ## The concept
 
@@ -72,7 +72,7 @@ for the odd-dim cases.
    `(1, 1, 91, 109, 91)` tensor through and asserts the spatial shape after
    each stage matches the documented chain.
 2. Builds the matching `nn.ConvTranspose3d` chain with the correct
-   `output_padding` values from `recvae/model.py:82-107` and confirms the
+   `output_padding` values from `recvae/model.py:122-154` and confirms the
    inverse chain lands back on `(91, 109, 91)`.
 
 ## Run it
@@ -87,7 +87,7 @@ Each stage prints its output shape. All asserts must pass.
 
 Convolutional networks fail silently if a shape is one off. The package
 has hard-coded `Linear(32 * 5 * 6 * 5, ...)` at the encoder-to-MLP boundary
-(`recvae/model.py:73`), so a shape drift anywhere upstream surfaces as a
+(`recvae/model.py:112`), so a shape drift anywhere upstream surfaces as a
 matmul error, not a meaningful one. The clearest defense is a written
 shape chain that the code reproduces exactly — which is what this lesson
 is.

@@ -10,10 +10,10 @@ memory.
 
 ## Where this lives in the repo
 
-- The full encoder stack: `recvae/model.py:50-75`.
-- The encode method that runs it: `recvae/model.py:119-125`.
+- The full encoder stack: `recvae/model.py:90-114`.
+- The encode method that runs it: `recvae/model.py:166-172`.
 - The flatten + Linear that turns the 4D feature map into a 1D feature
-  vector: `recvae/model.py:71-75`.
+  vector: `recvae/model.py:110-114`.
 
 ## The concept
 
@@ -52,8 +52,8 @@ stats only. Two consequences worth knowing:
 **LeakyReLU(0.2).** `f(x) = x if x > 0 else 0.2 * x`. The small positive
 slope on the negative side keeps gradients flowing through neurons that
 would otherwise saturate at zero. `0.2` is a common default; `recvae/`
-uses it at every encoder and decoder activation (`recvae/model.py:54, 59,
-64, 69, 87, 92, 97, 102`).
+uses it at every encoder and decoder activation (`recvae/model.py:93, 98,
+103, 108, 126, 133, 140, 147`).
 
 ## Code walk
 

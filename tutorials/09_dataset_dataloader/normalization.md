@@ -2,7 +2,7 @@
 
 ## What `normalize_per_subject` does
 
-`recvae/data.py:75-106` rescales each subject's full 6D volume to the
+`recvae/data.py:74-105` rescales each subject's full 6D volume to the
 range `[-1, 1]` using that subject's own min and max. In pseudocode:
 
 ```
@@ -31,7 +31,7 @@ fMRI dataset:
 
 The current choice — per subject, across all voxels and timepoints — is
 inherited from the canonical notebook. The note at
-`recvae/data.py:80-85` flags it as a research decision:
+`recvae/data.py:79-85` flags it as a research decision:
 
 > Per-subject statistics destroy absolute-intensity differences across
 > subjects, which may matter for downstream classification. Considered
@@ -44,7 +44,7 @@ intensity dimension that has been normalized out of the input.
 
 ## The zero-span guard
 
-`recvae/data.py:101-103`:
+`recvae/data.py:100-102`:
 
 ```python
 span = max_values - min_values

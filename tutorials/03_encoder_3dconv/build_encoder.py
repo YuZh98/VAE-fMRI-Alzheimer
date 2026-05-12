@@ -11,7 +11,7 @@ from recvae import Config, RecVAEModel
 
 
 def build_from_scratch(cfg: Config) -> nn.Sequential:
-    """Mirror RecVAEModel.encoder1..encoder5 (recvae/model.py:50-75)."""
+    """Mirror RecVAEModel.encoder1..encoder5 (recvae/model.py:90-114)."""
     return nn.Sequential(
         nn.Sequential(
             nn.Conv3d(1, 4, kernel_size=4, stride=2, padding=1),

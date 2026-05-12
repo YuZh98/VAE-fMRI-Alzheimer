@@ -1,4 +1,4 @@
-"""A toy nn.Module mirroring encoder1 from recvae/model.py:51-55."""
+"""A toy nn.Module mirroring encoder1 from recvae/model.py:90-94."""
 
 import pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
@@ -11,7 +11,7 @@ from torch import nn
 class ToyEncoderBlock(nn.Module):
     """Conv3d -> BatchNorm3d -> LeakyReLU, the canonical encoder unit.
 
-    Same structure as ``RecVAEModel.encoder1`` (recvae/model.py:51-55), but
+    Same structure as ``RecVAEModel.encoder1`` (recvae/model.py:90-94), but
     with arbitrary in/out channel counts so we can use small inputs here.
     """
 

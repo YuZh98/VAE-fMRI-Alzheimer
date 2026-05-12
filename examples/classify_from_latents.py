@@ -28,6 +28,22 @@ from recvae import (  # noqa: E402
     synthetic_cohort,
 )
 
+# Make the sklearn dependency explicit. We probe once at import time so the
+# warning is visible at the top of the script's output, rather than buried
+# inside fit_logistic() where a first-time learner copy-pasting `from
+# sklearn.linear_model import LogisticRegression` would hit ImportError
+# without any context. The torch-fallback path remains the same.
+try:
+    import sklearn  # noqa: F401, E402
+
+    _HAVE_SKLEARN = True
+except ImportError:
+    _HAVE_SKLEARN = False
+    print(
+        "WARNING: scikit-learn not installed. Falling back to a torch-rolled logistic.\n"
+        'To install:  pip install -e ".[examples]"',
+    )
+
 
 def extract_latents(model: RecVAEModel, volumes: torch.Tensor, h0: torch.Tensor) -> torch.Tensor:
     """Run a frozen forward pass and average h_t over time."""
@@ -50,28 +66,32 @@ def pca_features(train_x: torch.Tensor, test_x: torch.Tensor, q: int = 8):
 
 def fit_logistic(feat_train: torch.Tensor, y_train: torch.Tensor,
                  feat_test: torch.Tensor, y_test: torch.Tensor):
-    """Try sklearn; fall back to a hand-rolled torch logistic regressor."""
-    try:
+    """Use sklearn if available; otherwise fall back to a torch logistic.
+
+    Availability is decided once at import time (see ``_HAVE_SKLEARN``) so
+    the warning surfaces at the top of the script rather than inside this
+    function.
+    """
+    if _HAVE_SKLEARN:
         from sklearn.linear_model import LogisticRegression  # noqa: WPS433
         clf = LogisticRegression(max_iter=200)
         clf.fit(feat_train.numpy(), y_train.numpy())
         return clf.score(feat_train.numpy(), y_train.numpy()), \
                clf.score(feat_test.numpy(), y_test.numpy()), "sklearn"
-    except ImportError:
-        # Fallback: 100 Adam steps on nn.Linear + BCE.
-        torch.manual_seed(0)
-        D = feat_train.shape[1]
-        head = torch.nn.Linear(D, 2)
-        opt = torch.optim.Adam(head.parameters(), lr=1e-2)
-        loss_fn = torch.nn.CrossEntropyLoss()
-        for _ in range(100):
-            opt.zero_grad()
-            loss_fn(head(feat_train), y_train).backward()
-            opt.step()
-        with torch.no_grad():
-            tr_acc = (head(feat_train).argmax(1) == y_train).float().mean().item()
-            te_acc = (head(feat_test).argmax(1) == y_test).float().mean().item()
-        return tr_acc, te_acc, "torch-fallback"
+    # Fallback: 100 Adam steps on nn.Linear + BCE.
+    torch.manual_seed(0)
+    D = feat_train.shape[1]
+    head = torch.nn.Linear(D, 2)
+    opt = torch.optim.Adam(head.parameters(), lr=1e-2)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    for _ in range(100):
+        opt.zero_grad()
+        loss_fn(head(feat_train), y_train).backward()
+        opt.step()
+    with torch.no_grad():
+        tr_acc = (head(feat_train).argmax(1) == y_train).float().mean().item()
+        te_acc = (head(feat_test).argmax(1) == y_test).float().mean().item()
+    return tr_acc, te_acc, "torch-fallback"
 
 
 def main() -> int:

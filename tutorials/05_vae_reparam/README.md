@@ -13,7 +13,7 @@
 
 ## Where this lives in the repo
 
-`recvae/model.py:135-146`. The method docstring also calls out exactly
+`recvae/model.py:182-193`. The method docstring also calls out exactly
 which mistake the canonical notebook made.
 
 ## The concept
@@ -87,7 +87,7 @@ is now deprecated and has several footguns:
 - It silently breaks if no CUDA device is present — the model fails to
   construct, not in `reparametrize`.
 
-The fix in `recvae/model.py:144-145` is:
+The fix in `recvae/model.py:191-192` is:
 
 ```python
 eps = torch.randn(mu_h.shape, device=mu_h.device, dtype=mu_h.dtype)
@@ -132,7 +132,7 @@ variance.
   Sections 2.3-2.4 derive the reparameterization trick.
 - Doersch, "Tutorial on Variational Autoencoders" (arXiv:1606.05908).
   Section 2 has the ELBO derivation with one less leap.
-- `recvae/model.py:135-146` — the implementation you've now read.
+- `recvae/model.py:182-193` — the implementation you've now read.
 - Lesson 10 in this tutorial series covers `device`-agnostic code in
   more depth, including why `torch.set_default_tensor_type` is bad
   practice.

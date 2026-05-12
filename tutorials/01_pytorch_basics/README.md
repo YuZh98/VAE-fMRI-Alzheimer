@@ -9,12 +9,12 @@ before; the goal is to point at where each shows up in the package.
 
 ## Where this lives in the repo
 
-- Tensors with explicit `device` and `dtype`: `recvae/model.py:144-146`
+- Tensors with explicit `device` and `dtype`: `recvae/model.py:191-193`
   (`torch.randn(mu_h.shape, device=mu_h.device, dtype=mu_h.dtype)`).
-- Autograd off-switch: `recvae/model.py:209` (`@torch.no_grad()` on
-  `updating_F`), and `recvae/train.py:112` (`@torch.no_grad()` on `evaluate`).
-- `nn.Module` subclass: `recvae/model.py:33` (`class RecVAEModel(nn.Module)`).
-- A `nn.Sequential` block: `recvae/model.py:51-55` — Conv3d + BatchNorm3d
+- Autograd off-switch: `recvae/model.py:269` (`@torch.no_grad()` on
+  `updating_F`), and `recvae/train.py:162` (`@torch.no_grad()` on `evaluate`).
+- `nn.Module` subclass: `recvae/model.py:72` (`class RecVAEModel(nn.Module)`).
+- A `nn.Sequential` block: `recvae/model.py:90-94` — Conv3d + BatchNorm3d
   + LeakyReLU, the canonical encoder unit.
 
 ## The concept
@@ -43,7 +43,7 @@ serializes them. Override `forward(self, ...)` to define the computation.
 recording (the result has no `grad_fn`).
 
 `02_first_module.py` defines a toy `nn.Module` whose `forward()` mirrors
-the `encoder1` block from `recvae/model.py:51-55`: a Conv3d, then BatchNorm3d,
+the `encoder1` block from `recvae/model.py:90-94`: a Conv3d, then BatchNorm3d,
 then LeakyReLU. It runs a `(1, 1, 16, 16, 16)` cube through and prints the
 input and output shapes. The cube is small on purpose — concept demos do
 not need the full 91 x 109 x 91 volume.

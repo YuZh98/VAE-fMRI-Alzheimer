@@ -8,8 +8,10 @@ No real fMRI data, no external dependencies beyond `recvae` itself.
 Runs on CPU in well under 60 seconds.
 """
 
+import argparse
 import pathlib
 import sys
+import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
@@ -32,12 +34,40 @@ from recvae import (  # noqa: E402
 )
 
 
+def _save_loss_curve(history: list[float], title: str) -> str:
+    """Plot ``history`` and write it to a fresh tempdir; return the path."""
+    import matplotlib
+
+    matplotlib.use("Agg")  # headless: works in CI / over SSH / etc.
+    import matplotlib.pyplot as plt
+
+    out_dir = tempfile.mkdtemp(prefix="recvae_loss_")
+    out_path = str(pathlib.Path(out_dir) / "loss_curve.png")
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(range(1, len(history) + 1), history, marker="o")
+    ax.set_xlabel("epoch")
+    ax.set_ylabel("train loss")
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return out_path
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Save a loss curve PNG to a temporary directory and print its path.",
+    )
+    args = parser.parse_args()
     set_seed(2022)
-    # MPS has known quirks with this model (see Lesson 15). Demote to CPU.
+    # MPS has known quirks with this model (see Lesson 15). Fall back to CPU.
     device = get_default_device()
     if device.type == "mps":
-        banner("MPS detected; demoting to CPU for demo stability")
+        banner("MPS detected. Using CPU for this demo (model has known MPS quirks; see Lesson 10).")
         device = torch.device("cpu")
 
     # Demo-sized config. lr=1e-5 matches Lesson 15's rationale: ten times the
@@ -87,6 +117,11 @@ def main() -> int:
         print(f"held-out MSE  : {eval_out['recon_mse']:.6f}")
         print(f"z_test shape  : {tuple(eval_out['z_test'].shape)}")
         print(f"h_test shape  : {tuple(eval_out['h_test'].shape)}")
+
+    if args.plot:
+        with section("plot loss curve"):
+            path = _save_loss_curve(history, title="Lesson 18: pipeline loss")
+            print(f"loss_curve saved to: {path}")
 
     banner("pipeline complete")
     return 0
