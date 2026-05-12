@@ -29,20 +29,16 @@ from recvae import (  # noqa: E402
 )
 
 # Make the sklearn dependency explicit. We probe once at import time so the
-# warning is visible at the top of the script's output, rather than buried
+# warning can be surfaced at the top of main()'s output (rather than buried
 # inside fit_logistic() where a first-time learner copy-pasting `from
 # sklearn.linear_model import LogisticRegression` would hit ImportError
-# without any context. The torch-fallback path remains the same.
+# without any context). The torch-fallback path remains the same.
 try:
     import sklearn  # noqa: F401, E402
 
     _HAVE_SKLEARN = True
 except ImportError:
     _HAVE_SKLEARN = False
-    print(
-        "WARNING: scikit-learn not installed. Falling back to a torch-rolled logistic.\n"
-        'To install:  pip install -e ".[examples]"',
-    )
 
 
 def extract_latents(model: RecVAEModel, volumes: torch.Tensor, h0: torch.Tensor) -> torch.Tensor:
@@ -95,6 +91,18 @@ def fit_logistic(feat_train: torch.Tensor, y_train: torch.Tensor,
 
 
 def main() -> int:
+    # Surface the sklearn-missing warning before any training output so a
+    # first-time reader sees it without scrolling past per-epoch loss lines.
+    # Route to stderr (same stream fit() logs to) so ordering is stable
+    # when stdout/stderr are merged.
+    if not _HAVE_SKLEARN:
+        print(
+            "WARNING: scikit-learn not installed. Falling back to a torch-rolled logistic.\n"
+            'To install:  pip install -e ".[examples]"',
+            file=sys.stderr,
+            flush=True,
+        )
+
     set_seed(2022)
 
     # Train cohort: 4 CN + 4 AD; test cohort: 2 CN + 2 AD with a different seed.

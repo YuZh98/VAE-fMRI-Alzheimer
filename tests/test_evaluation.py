@@ -86,10 +86,9 @@ def test_evaluate_held_out_lambda_z_shrinks_z(small_cfg, synthetic_volumes):
     volumes_test = synthetic_volumes[:2]
     h0 = torch.zeros(1, model.latent_dim)
 
-    # Pin RNG so both runs start from the same z_test init. We seed once
-    # before each call because evaluate_held_out draws torch.randn for the
-    # init internally.
-    torch.manual_seed(0)
+    # Use the seed kwarg so both runs start from the same z_test init,
+    # isolating the effect of lambda_z from init noise. inner_steps>=20
+    # keeps the L1 effect dominant over residual init differences.
     out_no_l1 = evaluate_held_out(
         model,
         volumes_test,
@@ -98,8 +97,8 @@ def test_evaluate_held_out_lambda_z_shrinks_z(small_cfg, synthetic_volumes):
         inner_lr=1e-2,
         inner_sig_z=0.5,
         lambda_z=0.0,
+        seed=42,
     )
-    torch.manual_seed(0)
     out_with_l1 = evaluate_held_out(
         model,
         volumes_test,
@@ -108,12 +107,13 @@ def test_evaluate_held_out_lambda_z_shrinks_z(small_cfg, synthetic_volumes):
         inner_lr=1e-2,
         inner_sig_z=0.5,
         lambda_z=1.0,
+        seed=42,
     )
 
     norm_no_l1 = out_no_l1["z_test"].abs().sum().item()
     norm_with_l1 = out_with_l1["z_test"].abs().sum().item()
     assert norm_with_l1 < norm_no_l1, (
-        f"lambda_z>0 should shrink |z_test|: {norm_with_l1=} vs {norm_no_l1=}",
+        f"lambda_z>0 should shrink |z_test|: {norm_with_l1=} vs {norm_no_l1=}"
     )
 
 

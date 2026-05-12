@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
-from typing import Callable
+from collections.abc import Callable, Iterable
 
 import torch
 
@@ -44,10 +43,10 @@ def fit(
     epoch logs one INFO-level line of the form
     ``[epoch k/N] mean_loss=... (recon=..., temporal=..., z_l1=...)`` where
     each value is the mean across batches in that epoch (not the noisy
-    last-batch value). If no logging handler is configured at call time,
-    ``fit()`` attaches a minimal stderr handler at INFO so scripts that
-    just ``import recvae`` and call ``fit(...)`` see progress without
-    boilerplate.
+    last-batch value). If no handler is configured for the ``recvae.train``
+    logger (or any ancestor short of root), ``fit()`` attaches a stderr
+    handler to the ``recvae.train`` logger only; never reconfigures root.
+    This keeps importing applications in full control of their own logging.
 
     TODO(research): SGD@1e-6 over 500 epochs likely under-trains a model of
     this size. Consider AdamW with lr ~1e-4 and a cosine scheduler.
@@ -79,8 +78,11 @@ def fit(
     # Library-friendly logging: only attach a handler if the caller has
     # not configured one. This keeps tutorials / examples streaming
     # per-epoch lines without forcing a root-logger config on importers.
-    if not logging.getLogger().handlers and not logger.handlers:
-        logging.basicConfig(level=logging.INFO, format="%(message)s")
+    if not logger.handlers and not logger.parent.handlers:
+        h = logging.StreamHandler()
+        h.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(h)
+        logger.setLevel(logging.INFO)
 
     optimizer = opt_func(model.parameters(), lr=lr)
 

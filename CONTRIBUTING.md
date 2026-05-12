@@ -6,8 +6,8 @@ repository.
 
 ## Development setup
 
-Python 3.9, 3.10, 3.11, 3.12, and 3.13 are all supported (CI exercises
-3.9-3.12 on Ubuntu and macOS).
+Python 3.10, 3.11, and 3.12 are supported (CI exercises 3.10-3.12 on
+Ubuntu and macOS).
 
 ```bash
 git clone https://github.com/YuZh98/VAE-fMRI-Alzheimer
@@ -74,6 +74,15 @@ mypy recvae/
 Mypy is intentionally lenient (`ignore_missing_imports = true`,
 `disable_error_code = ["import-untyped"]`) — it is a smoke check, not a
 strict-mode gate.
+
+`lint.yml` also runs `tools/check_citations.py` to catch drift between
+the tutorial-prose `recvae/file.py:line` citations and the actual line
+numbers in the package. Run it locally before pushing if you've touched
+either the cited code or the tutorial prose:
+
+```bash
+python tools/check_citations.py
+```
 
 ## Pre-commit
 

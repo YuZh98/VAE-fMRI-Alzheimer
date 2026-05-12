@@ -18,6 +18,8 @@ so `import recvae` works without `pip install -e .`.
 | [`cohort_specific_F.py`](cohort_specific_F.py) | Keep `F_cn` and `F_ad` transition matrices and route each subject through the right one based on its label. |
 | [`amortized_z.py`](amortized_z.py) | Replace per-subject `z_vectors` with a small 3D-conv encoder `Z_Enc`; time amortized inference vs `evaluate_held_out`'s inner SGD. |
 
+Some examples need extras: `pip install -e ".[examples]"`.
+
 Run any example directly:
 
 ```bash

@@ -32,20 +32,19 @@ git clone https://github.com/YuZh98/VAE-fMRI-Alzheimer
 cd VAE-fMRI-Alzheimer
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest -v                                              # 34 tests, ~5s
+pytest -v                                              # 36 tests, ~5-20s, CPU-only
 python tutorials/15_train_end_to_end/train_tiny.py     # synthetic, ~3s
 ```
 
 > Note: the local directory name after clone is `VAE-fMRI-Alzheimer` (matches the GitHub repo); the Python package importable as `recvae`.
 
 For a full end-to-end run on synthetic data, see
-[`notebooks/RecVAE_on_synthetic.ipynb`](notebooks/RecVAE_on_synthetic.ipynb)
-(Open-in-Colab link will be added once the notebook lands on `main`).
+[`notebooks/RecVAE_on_synthetic.ipynb`](notebooks/RecVAE_on_synthetic.ipynb).
 
 ## 30-minute tour
 
 1. Run `python tutorials/00_setup/verify_torch.py` (5s) — confirms environment.
-2. Run `pytest -q` (5s) — confirms the package works.
+2. Run `pytest -q` (~5-20s) — confirms the package works.
 3. Open `tutorials/15_train_end_to_end/train_tiny.py` and run it (~3s) — your first end-to-end training run on synthetic data.
 4. Open `notebooks/RecVAE_on_synthetic.ipynb` (run in Colab or locally) — full pipeline: synthesize data → train → held-out evaluation → linear-probe CN vs AD.
 5. Browse `tutorials/README.md` and pick a lesson — the 18 lessons cover everything from 3D-conv arithmetic to research extensions.
@@ -56,7 +55,7 @@ For a full end-to-end run on synthetic data, see
 shapes, 3D-conv arithmetic, the reparameterization trick, recurrent
 rollouts, alternating optimization, reproducibility, testing DL code, and
 research extensions. Every lesson has a short README and at least one
-runnable script. CI runs every script on every push.
+runnable script. CI runs every script nightly (see `.github/workflows/tutorials.yml`); tests run on every push/PR via `tests.yml`.
 
 ## Visuals
 
@@ -142,7 +141,7 @@ VAE-fMRI-Alzheimer/
 │   ├── RecVAE_on_fMRI.ipynb       # canonical driver (uses recvae package)
 │   ├── RecVAE_on_synthetic.ipynb  # synthetic-data end-to-end demo
 │   └── Input_images.ipynb         # data-inspection helpers
-├── tests/                   # pytest suite (34 tests, ~5s, CPU-only)
+├── tests/                   # pytest suite (36 tests, ~5-20s, CPU-only)
 ├── legacy/                  # archived earlier iterations (V1–V4)
 ├── pyproject.toml           # PEP 621 metadata + pytest config
 ├── requirements.txt         # runtime deps
